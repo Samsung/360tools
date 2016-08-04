@@ -879,8 +879,8 @@ int main(int argc, const char * argv[])
 		if (verb)
 			s360_print("[%4d]-frame quality: %5.4f %5.4f %5.4f\n", pic_cnt++,
 				qual[0], qual[1], qual[2]);
-        else
-            pic_cnt++;
+		else
+			pic_cnt++;
 
 		for(i=0; i<3; i++)
 		{
@@ -895,8 +895,8 @@ int main(int argc, const char * argv[])
 		qual_sum[i] /= pic_cnt;
 	}
 
-	s360_print("QM_ID %d, Total %d frames quality: Y %5.4f Cb %5.4f Cr %5.4f\n",
-		qmetric, pic_cnt, (float)qual_sum[0], (float)qual_sum[1], (float)qual_sum[2]);
+	s360_print("Total %d frames quality:\n\t QM_ID:%d\tY\t%5.4f\tCb\t%5.4f\tCr\t%5.4f\n",
+		pic_cnt, qmetric, (float)qual_sum[0], (float)qual_sum[1], (float)qual_sum[2]);
 
 ERR:
 	if(fp_org) fclose(fp_org);
@@ -907,7 +907,7 @@ ERR:
 
 	if(img_org) s360_img_delete(img_org);
 	if(img_rec) s360_img_delete(img_rec);
-    if(img_a) s360_img_delete(img_a);
+	if(img_a) s360_img_delete(img_a);
 	if(img_b) s360_img_delete(img_b);
 
 	return ret;
