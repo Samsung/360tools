@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "360tools_conv", "360tools_conv_vs2010.vcxproj", "{B173BC68-FBF2-412A-960B-2A47852FDB97}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "360tools_lib", "360tools_lib_vs2010.vcxproj", "{ECEB74A8-11F9-4CA1-841F-D6D2AD7FE14C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "360tools_metric", "360tools_metric_vs2010.vcxproj", "{1E352747-645B-4206-B373-FE98A18C5390}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B173BC68-FBF2-412A-960B-2A47852FDB97}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B173BC68-FBF2-412A-960B-2A47852FDB97}.Debug|Win32.Build.0 = Debug|Win32
+		{B173BC68-FBF2-412A-960B-2A47852FDB97}.Release|Win32.ActiveCfg = Release|Win32
+		{B173BC68-FBF2-412A-960B-2A47852FDB97}.Release|Win32.Build.0 = Release|Win32
+		{ECEB74A8-11F9-4CA1-841F-D6D2AD7FE14C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{ECEB74A8-11F9-4CA1-841F-D6D2AD7FE14C}.Debug|Win32.Build.0 = Debug|Win32
+		{ECEB74A8-11F9-4CA1-841F-D6D2AD7FE14C}.Release|Win32.ActiveCfg = Release|Win32
+		{ECEB74A8-11F9-4CA1-841F-D6D2AD7FE14C}.Release|Win32.Build.0 = Release|Win32
+		{1E352747-645B-4206-B373-FE98A18C5390}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1E352747-645B-4206-B373-FE98A18C5390}.Debug|Win32.Build.0 = Debug|Win32
+		{1E352747-645B-4206-B373-FE98A18C5390}.Release|Win32.ActiveCfg = Release|Win32
+		{1E352747-645B-4206-B373-FE98A18C5390}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
