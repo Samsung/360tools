@@ -1,10 +1,10 @@
-# 360 Tools 
+# 360tools 
 
-	Projection tools for VR video compression exploration experiments
+	Projection and quality evaluation tools for VR video compression exploration experiments
 
 ## Description
-	+ 360Tools_conv is used for conversion between different projection formats
-	+ 360_tools_metric implements various quality metrics for vR video quality evaluation
+	+ 360tools_conv is used for conversion between different projection formats
+	+ 360tools_metric implements various quality metrics for vR video quality evaluation
 	
 	The 360tools is software for VR video processing experiments.
 	The software includes both 360 video conversion and quality metrics
@@ -26,15 +26,15 @@
 Checkout the source for 360 Tools
 
 	+ Windows
-	In 360Tools/build/x86_windows/
+	In 360tools/build/x86_windows/
 	select corresponding *.sln file
 	build and run with preferred visual studio 2008 or 2010
-	Executable files are stored to 360Tools/bin/ directory
+	Executable files are stored to 360tools/bin/ directory
 	
 	+ Linux
-	In 360Tools/build/x86_linux/
+	In 360tools/build/x86_linux/
 	execute make command 
-	Executable files are stored at 360Tools/bin/ directory
+	Executable files are stored at 360tools/bin/ directory
 
 ## Example usage for conversion tool
 
