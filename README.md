@@ -47,9 +47,9 @@ Checkout the source for 360 Tools
 	./360tools_metrics -w 4096 -h 2048 -f 1 -o glacier_vr_24p_3840x1920.yuv -q 4 -l 4268 -m 2016 -t 2 -r glacier_vr_24p_isp_4268x2016.yuv -n 7 -x 1 
 	
 ## Supported formats
-	+	ERP Equirectangular projection
-	+	Icosahedral projection
-	+	Cubemap projection
+	+	Equirectangular projection (ERP)
+	+	Icosahedral projection (ISP)
+	+	Cubemap projection (CMP)
 	
 ## Supported quality metrics
 	+	PSNR - conventional Peak Signal to Noise Ratio quality metrics
