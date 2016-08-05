@@ -23,7 +23,8 @@
 
 ## Building
 
-*) Checkout the source for 360 Tools
+Checkout the source for 360 Tools
+
 	+ Windows
 	In 360Tools/build/x86_windows/
 	select corresponding *.sln file
@@ -54,16 +55,16 @@
 	+	PSNR - conventional Peak Signal to Noise Ratio quality metrics
 	+	S-PSNR - spherical PSNR (requires sphere_655362.txt file with point coordinates)
 	+	WS-PSNR - weighted Spherical PSNR (for equirectangular projection only)
-	+	CPP-PSNR - equal area common projection PSNR	
+	+	CPP-PSNR - equal area common projection PSNR
 	
 ## Conversion parameters
 	+	Mandatory
-		-i input file name
-		-o output file name
+		-i	input file name
+		-o	output file name
 		-w	input image width
 		-h	input image height
 		-l	output image width
-		-m  output image height
+		-m	output image height
 		-x	input image colorspace
 		-y	output image colorspace
 		-f	conversion format
@@ -71,8 +72,8 @@
 	+	Optional
 		-n	number of converted frames
 		-a	align to multiple of size
-		-u  disable padding
-		-c  config file
+		-u	disable padding
+		-c	config file
 		
 ## Quality metrics parameters
 	+	Mandatory
@@ -81,16 +82,17 @@
 		-w	width original
 		-h	height original
 		-q	metrics type
-		-x	colorspace settings
+		-x	original image colorspace
+		-y	reconstructed image colorspace
 		
 	+	Optinal
-		-l  width reconstructed
-		-m  height reconstructed
+		-l	width reconstructed
+		-m	height reconstructed
 		-n	number of frames
 		-s	spheric coordinates file, mandatory for S-PSNR
-		-f  projection format original, mandatory for CPP-PSNR
-		-t  projection format reconstructed for CPP-PSNR
-		-c  config file
+		-f	projection format original, mandatory for CPP-PSNR
+		-t	projection format reconstructed for CPP-PSNR
+		-c	config file
 		
 ## Recommended equal spatial resolution: number of pixels in each projection is constant 
 	(S_ERP == S_ISP == S_CPP); Value is suggested for HM and JEM sw

@@ -134,14 +134,14 @@ void s360_img_reset(S360_IMAGE * img)
 	}
 }
 
-int s360_img_read(FILE * fp, S360_IMAGE * img, int cs)
+int s360_img_read(FILE * fp, S360_IMAGE * img, int cs_int)
 {
 	uint8     * p8;
 	uint16    * p16;
 	uint16      val16;
 	int         i, j, k, w;
 
-	if((cs == S360_COLORSPACE_YUV420) && (img->colorspace == S360_COLORSPACE_YUV420_10))
+	if((cs_int == S360_COLORSPACE_YUV420) && (img->colorspace == S360_COLORSPACE_YUV420_10))
 	{
 
 		/* luma */
@@ -176,7 +176,7 @@ int s360_img_read(FILE * fp, S360_IMAGE * img, int cs)
 			}
 		}
 	}
-	else if((cs == S360_COLORSPACE_YUV420) && (img->colorspace == S360_COLORSPACE_YUV420))
+	else if((cs_int == S360_COLORSPACE_YUV420) && (img->colorspace == S360_COLORSPACE_YUV420))
 	{
 		/* luma */
 		p8 = (uint8 *)img->buffer[0];
@@ -199,7 +199,7 @@ int s360_img_read(FILE * fp, S360_IMAGE * img, int cs)
 			}
 		}
 	}
-	else if((cs == S360_COLORSPACE_YUV420_10) && (img->colorspace == S360_COLORSPACE_YUV420_10))
+	else if((cs_int == S360_COLORSPACE_YUV420_10) && (img->colorspace == S360_COLORSPACE_YUV420_10))
 	{
 		/* luma */
 		p16 = (uint16 *)img->buffer[0];
@@ -222,7 +222,7 @@ int s360_img_read(FILE * fp, S360_IMAGE * img, int cs)
 			}
 		}
 	}
-	else if((cs == S360_COLORSPACE_YUV420_10) && (img->colorspace == S360_COLORSPACE_YUV420))
+	else if((cs_int == S360_COLORSPACE_YUV420_10) && (img->colorspace == S360_COLORSPACE_YUV420))
 	{
 		/* luma */
 		p8 = (uint8 *)img->buffer[0];

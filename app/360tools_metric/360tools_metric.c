@@ -52,7 +52,8 @@ static int  h_rec = 0;
 static int  qmetric = 0;
 static int  frm_num = 0;
 static int  sph_num = 0;
-static int  cs = 0;
+static int  cs_org = 0;
+static int  cs_rec = 0;
 static int  verb = 0;
 static int  pfmt_org = 0;
 static int  pfmt_rec = 0;
@@ -137,8 +138,13 @@ static S360_ARGS_OPT argopt[] = \
 		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t"
 	},
 	{
-		'x',  "color_space", S360_ARGS_VAL_TYPE_INTEGER,
-		&opt_flag[CMD_FLAG_METRIC_CS], &cs,
+		'x',  "color_space_orig", S360_ARGS_VAL_TYPE_INTEGER,
+		&opt_flag[CMD_FLAG_METRIC_CS_ORG], &cs_org,
+		"color space\n\t 1: YUV420 8-bit\n\t 2: YUV420 10-bit\n\t"
+	},
+	{
+		'y',  "color_space_ref", S360_ARGS_VAL_TYPE_INTEGER,
+		&opt_flag[CMD_FLAG_METRIC_CS_REC], &cs_rec,
 		"color space\n\t 1: YUV420 8-bit\n\t 2: YUV420 10-bit\n\t"
 	},
 	{
@@ -681,6 +687,7 @@ int main(int argc, const char * argv[])
 	int               pic_cnt = 0;
 	int               h_in = 0;
 	int               w_in = 0;
+    int               cs_int = S360_COLORSPACE_YUV420_10;
 	double            qual[4] = {0,};
 	double            qual_sum[4] = {0,};
 
@@ -705,12 +712,26 @@ int main(int argc, const char * argv[])
 		print_usage(); ret = -1; goto ERR;
 	}
 
-	if(!opt_flag[CMD_FLAG_METRIC_CS])
-		cs = 1;
-	if(cs == 1)
-		cs = S360_COLORSPACE_YUV420;
-	else if (cs == 2)
-		cs = S360_COLORSPACE_YUV420_10;
+	if(!opt_flag[CMD_FLAG_METRIC_CS_ORG])
+		cs_org = 1;
+	if(cs_org == 1)
+		cs_org = S360_COLORSPACE_YUV420;
+	else if (cs_org == 2)
+		cs_org = S360_COLORSPACE_YUV420_10;
+	else
+	{
+		s360_print("Invalid input option for color space\n");
+		ret = S360_ERR_UNSUPPORTED_COLORSPACE;
+		print_usage();
+		goto ERR;
+	}
+
+	if(!opt_flag[CMD_FLAG_METRIC_CS_REC])
+		cs_rec = cs_org;
+	if(cs_rec == 1)
+		cs_rec = S360_COLORSPACE_YUV420;
+	else if (cs_rec == 2)
+		cs_rec = S360_COLORSPACE_YUV420_10;
 	else
 	{
 		s360_print("Invalid input option for color space\n");
@@ -775,8 +796,6 @@ int main(int argc, const char * argv[])
 			print_usage(); ret = -1; goto ERR;
 		}
         if(!pfmt_rec) pfmt_rec = pfmt_org;
-        //w_in = w_org > w_rec? w_rec:w_org;
-		//h_in = h_org > h_rec? h_rec:h_org;
 		w_in = WIDTH_CPP;
 		h_in = HEIGHT_CPP;
         switch(pfmt_org)
@@ -824,8 +843,8 @@ int main(int argc, const char * argv[])
 			print_usage();
 			goto ERR;
 		}
-		img_a = s360_img_create(w_in, h_in, cs, 0);
-		img_b = s360_img_create(w_in, h_in, cs, 0);
+		img_a = s360_img_create(w_in, h_in, cs_int, 0);
+		img_b = s360_img_create(w_in, h_in, cs_int, 0);
 		if(img_a == NULL || img_b == NULL)
 		{
 			s360_print("Failed to create image buffer\n");
@@ -840,8 +859,8 @@ int main(int argc, const char * argv[])
 		return -1;
 	}
 
-	img_org = s360_img_create(w_org, h_org, cs, 0);
-	img_rec = s360_img_create(w_rec, h_rec, cs, 0);
+	img_org = s360_img_create(w_org, h_org, cs_int, 0);
+	img_rec = s360_img_create(w_rec, h_rec, cs_int, 0);
 	if(img_org == NULL || img_rec == NULL)
 	{
 		s360_print("Failed to create image buffer\n");
@@ -853,8 +872,8 @@ int main(int argc, const char * argv[])
         S360_IMAGE      * img_org_m = NULL;
         S360_IMAGE      * img_rec_m = NULL;
 
-		if(s360_img_read(fp_org, img_org, cs) < 0) break;
-		if(s360_img_read(fp_rec, img_rec, cs) < 0) break;
+		if(s360_img_read(fp_org, img_org, cs_org) < 0) break;
+		if(s360_img_read(fp_rec, img_rec, cs_rec) < 0) break;
 
 		/* YCbCr 4:2:0 for now */
         if (qmetric == OPT_METRIC_CPPPSNR)
@@ -870,10 +889,10 @@ int main(int argc, const char * argv[])
             img_rec_m = img_rec;
         }
 
-        qual[0] = fn_qmetric(w_in, h_in, img_org_m->buffer[0], img_rec_m->buffer[0], img_rec_m->colorspace);
+        qual[0] = fn_qmetric(w_in, h_in, img_org_m->buffer[0], img_rec_m->buffer[0], cs_int);
 		for(i=1; i<3; i++)
 		{
-			qual[i] = fn_qmetric(w_in>>1, h_in>>1, img_org_m->buffer[i], img_rec_m->buffer[i], img_rec_m->colorspace);
+			qual[i] = fn_qmetric(w_in>>1, h_in>>1, img_org_m->buffer[i], img_rec_m->buffer[i], cs_int);
 		}
 
 		if (verb)
