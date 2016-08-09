@@ -116,7 +116,7 @@ static S360_ARGS_OPT argopt[] = \
 	{
 		'q',  "qmetric", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
 		&opt_flag[CMD_FLAG_METRIC_QMETRIC], &qmetric,
-		"quality metric \n\t 1: PSNR\n\t 3: sperical PSNR(S-PSNR)\n\t"
+		"quality metric \n\t1: PSNR\n\t2: sperical PSNR(S-PSNR)\n\t"
         "3: weighted sperical PSNR(WS-PSNR)\n\t"
         "4: craster parabolic projection PSNR(CPP-PSNR)"
 	},
@@ -180,7 +180,7 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 	int i, j;
 	double diff;
 	double pixel_weight;
-	double sum;
+	double sum, w_sum = 0;
 
 	if (colorSpace == S360_COLORSPACE_YUV420)
 	{
@@ -196,9 +196,10 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 				diff = (pixel_weight)*(((double)src[i*w + j]) - ((double)dst[i*w + j]));
 				diff = S360_ABS(diff);
 				sum += diff * diff;
+                w_sum += pixel_weight;
 			}
 		}
-		sum = sum/(w*h);
+		sum = sum/(w_sum);
 		if(sum == 0) sum = 100; /* to avoid fault */
 		else sum = 10*log10(255*255/sum);
 	}
@@ -216,9 +217,10 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 				diff = (pixel_weight)*(((double)src[i*w + j]) - ((double)dst[i*w + j]));
 				diff = S360_ABS(diff);
 				sum += diff * diff;
+                w_sum += pixel_weight;
 			}
 		}
-		sum = sum/(w*h);
+		sum = sum/(w_sum);
 		if(sum == 0) sum = 100; /* to avoid fault */
 		else sum = 10*log10(1023*1023/sum);
 	}
