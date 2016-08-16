@@ -716,6 +716,9 @@ int main(int argc, const char * argv[])
 
 	if(!opt_flag[CMD_FLAG_METRIC_CS_ORG])
 		cs_org = 1;
+    if(!opt_flag[CMD_FLAG_METRIC_CS_REC])
+		cs_rec = cs_org;
+
 	if(cs_org == 1)
 		cs_org = S360_COLORSPACE_YUV420;
 	else if (cs_org == 2)
@@ -727,9 +730,7 @@ int main(int argc, const char * argv[])
 		print_usage();
 		goto ERR;
 	}
-
-	if(!opt_flag[CMD_FLAG_METRIC_CS_REC])
-		cs_rec = cs_org;
+	
 	if(cs_rec == 1)
 		cs_rec = S360_COLORSPACE_YUV420;
 	else if (cs_rec == 2)
