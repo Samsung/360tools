@@ -170,14 +170,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\360tools_ohp.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\360tools_ssp.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\360tools_map.c"
 				>
 			</File>
@@ -217,14 +209,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\360tools_cmp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\360tools_ohp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\360tools_ssp.h"
 				>
 			</File>
 			<File
