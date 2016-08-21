@@ -192,10 +192,10 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 		{
 			for(j=0;j<w;j++)
 			{
-				pixel_weight = cos ((i - (h/2)) * PI/h);
-				diff = (pixel_weight)*(((double)src[i*w + j]) - ((double)dst[i*w + j]));
+				pixel_weight = cos ((i - (h/2) + 0.5) * PI/h);
+				diff = (double)src[i*w + j] - (double)dst[i*w + j];
 				diff = S360_ABS(diff);
-				sum += diff * diff;
+				sum += diff * diff * pixel_weight;
                 w_sum += pixel_weight;
 			}
 		}
@@ -213,10 +213,10 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 		{
 			for(j=0;j<w;j++)
 			{
-				pixel_weight = cos ((i - (h/2)) * PI/h);
-				diff = (pixel_weight)*(((double)src[i*w + j]) - ((double)dst[i*w + j]));
+				pixel_weight = cos ((i - (h/2) + 0.5) * PI/h);
+				diff = (double)src[i*w + j] - (double)dst[i*w + j];
 				diff = S360_ABS(diff);
-				sum += diff * diff;
+				sum += diff * diff * pixel_weight;
                 w_sum += pixel_weight;
 			}
 		}
