@@ -35,16 +35,6 @@
 #include "360tools.h"
 #include "360tools_cmp.h"
 
-double tbl_squ_center_xyz[6][3] = \
-{
-	{ 0.0, 0.57735026919, 0.0 },
-	{ 0.0, 0.0, -0.57735026919 },
-	{ 0.0, -0.57735026919, 0.0 },
-	{ -0.57735026919, 0.0, 0.0 },
-	{ 0.57735026919, 0.0, 0.0 },
-	{ 0.0, 0.0, 0.57735026919 }
-};
-
 #if USE_MIRROR_PADDING
 static void pad_cmp_plane(uint8 *dst, int w_dst, int h_dst, int s_dst, int w_squ, int pad_size)
 {
@@ -440,8 +430,8 @@ int s360_erp_to_cmp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 }
 
 /*-------------------------------   FROM CMP    -----------------------------*/
-static int get_squ_idx(double x, double y, double z, double center[6][3]){
-
+static int get_squ_idx(double x, double y, double z, const double center[6][3])
+{
 	double min_dist, dist, h1, h2, h3;
 	int i, idx;
 

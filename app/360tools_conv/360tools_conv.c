@@ -85,8 +85,9 @@ static S360_ARGS_OPT argopt[] = \
 	{
 		'f',  "convfmt", S360_ARGS_VAL_TYPE_INTEGER | S360_ARGS_VAL_TYPE_MANDATORY,
 		&opt_flag[CMD_FLAG_CONV_CFMT], &cfmt,
-		"converting format\n\t  1: ERP to ISP\n\t  2: ISP to ERP\n\t  "
-        "3: ERP to CMP\n\t  4: CMP to ERP\n\t"
+		"converting format\n\t"
+		"1:  ERP to ISP\n\t2:  ISP to ERP\n\t"
+		"3:  ERP to CMP\n\t4:  CMP to ERP\n\t"
 	},
 	{
 		'l', "out_width", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
@@ -208,10 +209,9 @@ int main(int argc, const char * argv[])
 		h_tri = NEAREST_EVEN((w_tri)*SIN_60);
 		w_tri = w_tri*5.5;
 		h_tri = h_tri*3;
-		s360_print("Invalid output resolution %dx%d, ISP recommended aspect ratio: 88:42\n",
-			w_out, h_out);
-		s360_print("Suggested sample dimension: "
-			"%dx%d\n", w_tri, h_tri);
+		s360_print("Invalid output resolution %dx%d, ISP recommended aspect "
+			" ratio: 88:42\n",	w_out, h_out);
+		s360_print("Suggested sample dimension: %dx%d\n", w_tri, h_tri);
 		print_usage();
 		goto END;
 	}

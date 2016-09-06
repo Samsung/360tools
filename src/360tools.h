@@ -86,6 +86,7 @@ void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
 /* padding *******************************************************************/
 #define USE_MIRROR_PADDING      1
 #define PAD_SIZE                16
+#define PAD_ALIGN               3
 void cpp_map_plane(int w_map, int h_map, int s_map, uint8 * map);
 void pad_cpp_plane(uint8 * buf, int w, int h, int s, uint8 * map0);
 void pad_cpp_plane_10b(uint16 * buf, int w, int h, int s, uint8 * map0);
@@ -126,6 +127,7 @@ double v3d_dot_product(double v1[3], double v2[3]);
 
 /* tables ********************************************************************/
 extern const double tbl_squ_xyz[8][3];
+extern const double tbl_squ_center_xyz[6][3];
 extern const int tbl_vidx_erp2cmp[6][4];
 extern double tbl_face_eqn[6][4];
 
