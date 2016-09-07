@@ -132,6 +132,42 @@ void cmp_plane_offset(int *x, int *y, int squ_idx, int w_squ)
 	}
 }
 
+void rcmp_plane_offset(int *x, int *y, int squ_idx, int w_squ)
+{
+	switch (squ_idx)
+	{
+	case 0:
+		// 180 deg rotate
+		*x = 2*w_squ;
+		*y = w_squ;
+		break;
+	case 1:
+		*x = 2*w_squ;
+		*y = 0;
+		break;
+	case 2:
+		*x = 0;    
+		*y = w_squ;
+		break;
+	case 3:
+		*x = w_squ;
+		*y = 0;
+		break;
+	case 4:
+		// 90 deg rotate
+		*x = w_squ;
+		*y = w_squ;
+		break;
+	case 5:
+		*x = 0;
+		*y = 0;
+		break;
+	default:
+		break;
+	}
+ 
+}
+
 void cpp_map_plane(int w_map, int h_map, int s_map, uint8 * map)
 {
 	int    i, j;
@@ -240,7 +276,7 @@ static double lanczos_coef(double x)
 	return sinc(x) * sinc(x / LANCZOS_TAB_SIZE);
 }
 #else
-#define lanczos_coef(x) tbl_lanczos_coef[(int)((fabs(x) + LANCZOS_TAB_SIZE)* LANCZOS_FAST_SCALE + 0.5)]
+#define lanczos_coef(x) tbl_lanczos_coef[(int)(fabs(x) * LANCZOS_FAST_SCALE + 0.5)]
 #endif
 
 int s360_init(void)
@@ -249,7 +285,7 @@ int s360_init(void)
 	int i;
 	for(i=0; i<LANCZOS_FAST_MAX_SIZE*LANCZOS_FAST_SCALE; i++)
 	{
-		double x = (double)i / LANCZOS_FAST_SCALE - LANCZOS_TAB_SIZE;
+		float x = (float)i / LANCZOS_FAST_SCALE;
 		tbl_lanczos_coef[i] = sinc(x) * sinc(x / LANCZOS_TAB_SIZE);
 	}
 #endif
@@ -268,7 +304,7 @@ void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 {
 	uint8 * src_8;
 	uint8 * dst_8;
-	double coef, sum = 0, res = 0;
+	float coef, sum = 0, res = 0;
 	int i, j, idx_x, idx_y;
 
 	src_8 = (uint8 *)src;
@@ -406,3 +442,18 @@ void resample_2d_10b(void * src, int w_src, int h_src, int s_src, \
 
 #endif
 
+resample_fn resample_fp(int cs)
+{
+	if (cs == S360_COLORSPACE_YUV420)
+	{
+			return resample_2d;
+	}
+	else if (cs == S360_COLORSPACE_YUV420_10)
+	{
+			return resample_2d_10b;
+	}
+    else
+    {
+        return resample_2d_10b;
+    }
+}

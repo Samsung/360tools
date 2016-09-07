@@ -154,6 +154,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\360tools_cmp.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\360tools_erp.c"
 				>
 			</File>
@@ -166,11 +170,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\360tools_cmp.c"
+				RelativePath="..\..\src\360tools_map.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\360tools_map.c"
+				RelativePath="..\..\src\360tools_ohp.c"
 				>
 			</File>
 			<File
@@ -192,6 +196,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\360tools_cmp.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\360tools_def.h"
 				>
 			</File>
@@ -208,11 +216,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\360tools_cmp.h"
+				RelativePath="..\..\src\360tools_map.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\360tools_map.h"
+				RelativePath="..\..\src\360tools_ohp.h"
 				>
 			</File>
 		</Filter>

@@ -22,6 +22,7 @@ CSRCS = $(DIR_SRC)/360tools.c \
 		$(DIR_SRC)/360tools_erp.c \
 		$(DIR_SRC)/360tools_isp.c \
 		$(DIR_SRC)/360tools_cmp.c \
+		$(DIR_SRC)/360tools_ohp.c \
 		$(DIR_SRC)/360tools_map.c \
 		$(DIR_SRC)/360tools_tbl.c
 

@@ -76,17 +76,20 @@ void cart_to_sph(double x, double y, double z, S360_SPH_COORD  * coord);
 #define LANCZOS_FAST_MODE       1
 #if LANCZOS_FAST_MODE
 #define LANCZOS_FAST_SCALE      100
-#define LANCZOS_FAST_MAX_SIZE   (LANCZOS_TAB_SIZE<<1)
+#define LANCZOS_FAST_MAX_SIZE   4096
 #endif
 void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 	double x, double y, void * dst, int x_dst);
 void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
 	double x, double y, void * dst, int x_dst);
+resample_fn resample_fp(int cs);
 
 /* padding *******************************************************************/
 #define USE_MIRROR_PADDING      1
 #define PAD_SIZE                16
 #define PAD_ALIGN               3
+#define RISP2_PAD               8
+
 void cpp_map_plane(int w_map, int h_map, int s_map, uint8 * map);
 void pad_cpp_plane(uint8 * buf, int w, int h, int s, uint8 * map0);
 void pad_cpp_plane_10b(uint16 * buf, int w, int h, int s, uint8 * map0);
@@ -125,6 +128,10 @@ double v3d_dot_product(double v1[3], double v2[3]);
 #define GET_W_TRI_ISP(w_erp)    ((int)((int)((w_erp) / 5.5) / 4) * 4)
 #define GET_H_TRI_ISP(w_tri)    NEAREST_EVEN((w_tri) * SIN_60)
 
+/* ohp triangle calculations *************************************************/
+#define GET_W_TRI_OHP(w_erp)    ((int)((int)((w_erp) / 4) / 2) * 2)
+#define GET_H_TRI_OHP(w_tri)    NEAREST_EVEN((w_tri) * SIN_60)
+
 /* tables ********************************************************************/
 extern const double tbl_squ_xyz[8][3];
 extern const double tbl_squ_center_xyz[6][3];
@@ -136,6 +143,10 @@ extern const int tbl_vidx_erp2isp[20][3];
 extern const int tbl_vidx_isp2erp[20][3];
 extern const int tbl_vidx_pad_isp[20][2];
 
+extern double tbl_tri_xyz_ohp[6][3];
+extern const int tbl_vidx_erp2ohp[8][3];
+extern const int tbl_vidx_ohp2erp[8][3];
+
 /*****************************************************************************
  * interface functions
  *****************************************************************************/
@@ -145,6 +156,7 @@ void s360_deinit(void);
 #include "360tools_erp.h"
 #include "360tools_isp.h"
 #include "360tools_cmp.h"
+#include "360tools_ohp.h"
 
 #ifdef __cplusplus
 }

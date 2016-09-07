@@ -88,6 +88,11 @@ static S360_ARGS_OPT argopt[] = \
 		"converting format\n\t"
 		"1:  ERP to ISP\n\t2:  ISP to ERP\n\t"
 		"3:  ERP to CMP\n\t4:  CMP to ERP\n\t"
+		"5:  ERP to OHP\n\t6:  OHP to ERP\n\t"
+		"11: ISP to RISP\n\t12: RISP to ISP\n\t"
+		"13: CMP to RCMP\n\t14: RCMP to CMP\n\t"
+		"15: OHP to ROHP\n\t16: ROHP to OHP\n\t"
+		"21: ERP to RISP\n\t22: RISP to ERP\n\t"
 	},
 	{
 		'l', "out_width", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
@@ -216,6 +221,42 @@ int main(int argc, const char * argv[])
 		goto END;
 	}
 
+	if((cfmt == CONV_FMT_ERP_TO_OHP) && (((w_out)%224 != 0 ||
+		h_out != 2*NEAREST_EVEN((((int)((int)((w_out)/4)/4)*4))*SIN_60))))
+	{
+		/* some suggested dimensions */
+		int w_tri, h_tri;
+		w_tri = ((int)((int)((w_out)/4)/4)*4);
+		h_tri = NEAREST_EVEN((w_tri)*SIN_60);
+		w_tri = w_tri*4;
+		h_tri = h_tri*2;
+		s360_print("Invalid output resolution %dx%d, OHP recommended aspect "
+			" ratio: 224:97\n",	w_out, h_out);
+		s360_print("Suggested sample dimension: %dx%d\n", w_tri, h_tri);
+		print_usage();
+		goto END;
+	}
+
+	if((cfmt == CONV_FMT_ISP_TO_RISP) && (w_out != (GET_W_TRI_ISP(w_in))*5 || 
+		(h_out) != GET_H_TRI_ISP(GET_W_TRI_ISP(w_in))*2))
+	{
+		s360_print("Invalid output resolution %dx%d, RISP does not support "
+			"resize\n:",	w_out, h_out);
+		s360_print("Suggested dimension: %dx%d\n", (GET_W_TRI_ISP(w_in))*5, 
+			GET_H_TRI_ISP(GET_W_TRI_ISP(w_in))*2 );
+		print_usage();
+		goto END;
+	}
+
+	if((cfmt == CONV_FMT_ERP_TO_OHP) && (w_out != w_in || (h_out*2) != h_in))
+	{
+		s360_print("Invalid output resolution %dx%d, ROHP does not support "
+			"resize\n:",	w_out, h_out);
+		s360_print("Suggested dimension: %dx%d\n", w_in, h_in/2);
+		print_usage();
+		goto END;
+	}
+
 	if(!opt_flag[CMD_FLAG_CONV_OWIDTH]) w_out = w_in;
 	if(!opt_flag[CMD_FLAG_CONV_OHEIGHT]) h_out = h_in;
 
@@ -232,6 +273,11 @@ int main(int argc, const char * argv[])
 	{
 		w_out = S360_ALIGN(w_out, align);
 		h_out = S360_ALIGN(h_out, align);
+	}
+
+	if(cfmt == CONV_FMT_ISP_TO_RISP)
+	{
+		no_pad = 1;
 	}
 
 	if(!no_pad)
@@ -260,6 +306,36 @@ int main(int argc, const char * argv[])
 		break;
 	case CONV_FMT_CMP_TO_ERP:
 		fn_conv = s360_cmp_to_erp;
+		break;
+	case CONV_FMT_ERP_TO_OHP:
+		fn_conv = s360_erp_to_ohp;
+		break;
+	case CONV_FMT_OHP_TO_ERP:
+		fn_conv = s360_ohp_to_erp;
+		break;
+	case CONV_FMT_ISP_TO_RISP:
+		fn_conv = s360_isp_to_risp;
+		break;
+	case CONV_FMT_RISP_TO_ISP:
+		fn_conv = s360_risp_to_isp;
+		break;
+	case CONV_FMT_CMP_TO_RCMP:
+		fn_conv = s360_cmp_to_rcmp;
+		break;
+	case CONV_FMT_RCMP_TO_CMP:
+		fn_conv = s360_rcmp_to_cmp;
+		break;
+	case CONV_FMT_OHP_TO_ROHP:
+		fn_conv = s360_ohp_to_rohp;
+		break;
+	case CONV_FMT_ROHP_TO_OHP:
+		fn_conv = s360_rohp_to_ohp;
+		break;
+	case CONV_FMT_ERP_TO_RISP:
+		fn_conv = s360_erp_to_risp1;
+		break;
+	case CONV_FMT_RISP1_TO_ERP:
+		fn_conv = s360_risp1_to_erp;
 		break;
 	default:
 		s360_print("Unsupprted converting format\n");

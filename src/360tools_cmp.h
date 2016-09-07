@@ -46,10 +46,12 @@ extern "C"
 
 /* to CMP */
 int s360_erp_to_cmp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_rcmp_to_cmp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 
 /* from CMP */
 int s360_cmp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_cmp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_cmp_to_rcmp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 
 #ifdef __cplusplus
 }

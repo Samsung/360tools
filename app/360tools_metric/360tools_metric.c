@@ -117,8 +117,8 @@ static S360_ARGS_OPT argopt[] = \
 		'q',  "qmetric", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
 		&opt_flag[CMD_FLAG_METRIC_QMETRIC], &qmetric,
 		"quality metric \n\t1: PSNR\n\t2: sperical PSNR(S-PSNR)\n\t"
-        "3: weighted sperical PSNR(WS-PSNR)\n\t"
-        "4: craster parabolic projection PSNR(CPP-PSNR)"
+		"3: weighted sperical PSNR(WS-PSNR)\n\t"
+		"4: craster parabolic projection PSNR(CPP-PSNR)"
 	},
 	{
 		's',  "sphere_file", S360_ARGS_VAL_TYPE_STRING,
@@ -196,7 +196,7 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 				diff = (double)src[i*w + j] - (double)dst[i*w + j];
 				diff = S360_ABS(diff);
 				sum += diff * diff * pixel_weight;
-                w_sum += pixel_weight;
+				w_sum += pixel_weight;
 			}
 		}
 		sum = sum/(w_sum);
@@ -217,7 +217,7 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 				diff = (double)src[i*w + j] - (double)dst[i*w + j];
 				diff = S360_ABS(diff);
 				sum += diff * diff * pixel_weight;
-                w_sum += pixel_weight;
+				w_sum += pixel_weight;
 			}
 		}
 		sum = sum/(w_sum);
@@ -716,7 +716,7 @@ int main(int argc, const char * argv[])
 
 	if(!opt_flag[CMD_FLAG_METRIC_CS_ORG])
 		cs_org = 1;
-    if(!opt_flag[CMD_FLAG_METRIC_CS_REC])
+	if(!opt_flag[CMD_FLAG_METRIC_CS_REC])
 		cs_rec = cs_org;
 
 	if(cs_org == 1)
@@ -730,7 +730,7 @@ int main(int argc, const char * argv[])
 		print_usage();
 		goto ERR;
 	}
-	
+
 	if(cs_rec == 1)
 		cs_rec = S360_COLORSPACE_YUV420;
 	else if (cs_rec == 2)
@@ -814,6 +814,9 @@ int main(int argc, const char * argv[])
         case PROJ_FMT_CMP:
             fn_conv_org = s360_cmp_to_cpp;
             break;
+        case PROJ_FMT_OHP:
+            fn_conv_org = s360_ohp_to_cpp;
+            break;
         default:
             s360_print("Unsupprted input format\n");
 			print_usage();
@@ -832,6 +835,9 @@ int main(int argc, const char * argv[])
             break;
         case PROJ_FMT_CMP:
             fn_conv_rec = s360_cmp_to_cpp;
+            break;
+        case PROJ_FMT_OHP:
+            fn_conv_rec = s360_ohp_to_cpp;
             break;
         default:
             s360_print("Unsupprted input format\n");
@@ -917,8 +923,9 @@ int main(int argc, const char * argv[])
 		qual_sum[i] /= pic_cnt;
 	}
 
-	s360_print("Total %d frames quality:\n\t QM_ID:%d\tY\t%5.4f\tCb\t%5.4f\tCr\t%5.4f\n",
-		pic_cnt, qmetric, (float)qual_sum[0], (float)qual_sum[1], (float)qual_sum[2]);
+    s360_print("QM_ID=%d\t%5.4f\t%5.4f\t%5.4f\n",
+        qmetric, (float)qual_sum[0], (float)qual_sum[1], (float)qual_sum[2]);
+
 
 ERR:
 	if(fp_org) fclose(fp_org);

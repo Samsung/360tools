@@ -335,7 +335,7 @@ int s360_img_write(FILE * fp, S360_IMAGE * img, int cs)
 		{
 			/* luma */
 			p = (uint8 *)img->buffer[0];
-
+			
 			for(j=0; j<img->height; j++)
 			{
 				for(k = 0;k<img->width;k++)
@@ -362,7 +362,7 @@ int s360_img_write(FILE * fp, S360_IMAGE * img, int cs)
 		}
 		if(cs == S360_COLORSPACE_YUV420_10)
 		{
-
+			
 			/* luma */
 			p = (uint8 *)img->buffer[0];
 			for(j=0; j<img->height; j++)
@@ -438,7 +438,7 @@ int s360_img_realloc(S360_IMAGE * img, int w, int h, int opt)
 	S360_IMAGE * img_new;
 	int i;
 
-	if(w > img->width || h > img->height > h)
+	if(w > img->width || h > img->height)
 	{
 		img_new = s360_img_create(w, h, img->colorspace, opt);
 		s360_assert_rv(img_new, S360_ERR_OUT_OF_MEMORY);

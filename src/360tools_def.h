@@ -171,6 +171,10 @@ typedef unsigned long long     uint64;
 #define INP_10B 0
 #define INT_10_BIT_DEPTH 2
 
+/* Resample function *********************************************************/
+typedef void(*resample_fn)(void * src, int w_start, int w_end, int h_src, int s_src, \
+    double x, double y, void * dst, int x_dst);
+
 /* image buffer format *******************************************************/
 typedef struct
 {
@@ -205,6 +209,16 @@ typedef enum
     CONV_FMT_ISP_TO_ERP,
     CONV_FMT_ERP_TO_CMP,
     CONV_FMT_CMP_TO_ERP,
+    CONV_FMT_ERP_TO_OHP,
+    CONV_FMT_OHP_TO_ERP,
+    CONV_FMT_ISP_TO_RISP=11,
+    CONV_FMT_RISP_TO_ISP,
+    CONV_FMT_CMP_TO_RCMP,
+    CONV_FMT_RCMP_TO_CMP,
+    CONV_FMT_OHP_TO_ROHP,
+    CONV_FMT_ROHP_TO_OHP,
+    CONV_FMT_ERP_TO_RISP=21,
+	CONV_FMT_RISP1_TO_ERP,
 	CONV_FMT_MAX
 } CONV_FMT;
 
@@ -214,6 +228,7 @@ typedef enum
 	PROJ_FMT_ERP = 1,
 	PROJ_FMT_ISP,
 	PROJ_FMT_CMP,
+    PROJ_FMT_OHP,
 	PROJ_FMT_MAX
 } PROJ_FMT;
 
