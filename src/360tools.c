@@ -452,8 +452,8 @@ resample_fn resample_fp(int cs)
 	{
 			return resample_2d_10b;
 	}
-    else
-    {
-        return resample_2d_10b;
-    }
+	else
+	{
+		return resample_2d_10b;
+	}
 }

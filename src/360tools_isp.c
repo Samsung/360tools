@@ -1421,6 +1421,388 @@ int s360_risp_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_M
 	return S360_OK;
 }
 
+/*********************************  RISP V2  *********************************/
+
+
+/* ISP to RISP2 plane function */
+
+static void copy_rect(S360_SPH_COORD * map, void * src, void * dst, \
+	int w_map, int x_src, int y_src, int x_dst, int y_dst, int w, int h,	\
+	int s_src, int s_dst, int cs, uint8 * map_dst)
+{
+	int      i, j;
+	uint8  * src_8, * dst_8;
+	uint16 * src_16, * dst_16;
+
+	map_dst = map_dst + ((y_dst*s_dst) + x_dst);
+	if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		src_16 = (uint16 *)src + ((y_src*s_src) + x_src);
+		dst_16 = (uint16 *)dst + ((y_dst*s_dst) + x_dst);
+		
+		for(j=0;j<h;j++)
+		{
+			for(i=0;i<w;i++)
+			{
+				if(map[j*w_map + i].lat != -1)
+				{
+					dst_16[i] = src_16[i];
+					map_dst[j*s_dst + i] = 1;
+				}
+			}
+			dst_16 += s_dst;
+			src_16 += s_src;
+		}
+	}
+	else if(cs == S360_COLORSPACE_YUV420)
+	{
+		src_8 = (uint8 *)src + ((y_src*s_src) + x_src);
+		dst_8 = (uint8 *)dst + ((y_dst*s_dst) + x_dst);
+
+		for(j=0;j<h;j++)
+		{
+			for(i=0;i<w;i++)
+			{
+				if(map[j*w_map + i].lat != -1)
+				{
+					dst_8[i] = src_8[i];
+					map_dst[j*s_dst + i] = 1;
+				}
+			}
+			dst_8 += s_dst;
+			src_8 += s_src;
+		}
+	}
+}
+
+static void flip_rect_hor_to_isp(S360_SPH_COORD * map, void * src, void * dst, \
+	int w_map, int x_src, int y_src, int x_dst, int y_dst, int w, int h,	\
+	int s_src, int s_dst, int cs, uint8 *map_dst)
+{
+	int      i, j;
+	uint8  * src_8, * dst_8;
+	uint16 * src_16, * dst_16;
+
+	map_dst = map_dst + ((y_dst*s_dst) + x_dst) + (h-1)*s_dst;
+
+	if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		src_16  = (uint16 *)src + ((y_src*s_src) + x_src);
+		dst_16  = (uint16 *)dst + ((y_dst*s_dst) + x_dst) + (h-1)*s_dst;
+		map    += (h-1)*w_map;
+
+		for(j=0;j<h;j++)
+		{
+			for(i=0;i<w;i++)
+			{
+				if(map[i].lat != -1)
+				{
+					dst_16[i]  = src_16[i];
+					map_dst[i] = 1;
+				}
+			}
+			map     -= w_map;
+			map_dst -= s_dst;
+			dst_16  -= s_dst;
+			src_16  += s_src;
+		}
+	}
+	else if(cs == S360_COLORSPACE_YUV420)
+	{
+		src_8   = (uint8 *)src + ((y_src*s_src) + x_src);
+		dst_8   = (uint8 *)dst + ((y_dst*s_dst) + x_dst) + (h-1)*s_dst;
+		map    += (h-1)*w_map;
+
+		for(j=0;j<h;j++)
+		{
+			for(i=0;i<w;i++)
+			{
+				if(map[i].lat != -1)
+				{
+					dst_8[i]   = src_8[i];
+					map_dst[i] = 1;
+				}
+			}
+			map     -= w_map;
+			map_dst -= s_dst;
+			dst_8   -= s_dst;
+			src_8   += s_src;
+		}
+	}
+}
+
+static void flip_rect_hor(S360_SPH_COORD * map, void * src, void * dst, \
+	int w_map, int x_src, int y_src, int x_dst, int y_dst, int w, int h,	\
+	int s_src, int s_dst, int cs, uint8 *map_dst)
+{
+	int      i, j;
+	uint8  * src_8, * dst_8;
+	uint16 * src_16, * dst_16;
+
+	map_dst = map_dst + ((y_dst*s_dst) + x_dst) + (h-1)*s_dst;
+	if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		src_16  = (uint16 *)src + ((y_src*s_src) + x_src);
+		dst_16  = (uint16 *)dst + ((y_dst*s_dst) + x_dst) + (h-1)*s_dst;
+
+		for(j=0;j<h;j++)
+		{
+			for(i=0;i<w;i++)
+			{
+				if(map[j*w_map + i].lat != -1)
+				{
+					dst_16[i] = src_16[i];
+					map_dst[i] = 1;
+				}
+			}
+			dst_16  -= s_dst;
+			map_dst -= s_dst;
+			src_16  += s_src;
+		}
+	}
+	else if(cs == S360_COLORSPACE_YUV420)
+	{
+		src_8 = (uint8 *)src + ((y_src*s_src) + x_src);
+		dst_8 = (uint8 *)dst + ((y_dst*s_dst) + x_dst) + (h-1)*s_dst;
+
+		for(j=0;j<h;j++)
+		{
+			for(i=0;i<w;i++)
+			{
+				if(map[j*w_map + i].lat != -1)
+				{
+					dst_8[i] = src_8[i];
+					map_dst[i] = 1;
+				}
+			}
+			map_dst -= s_dst;
+			dst_8   -= s_dst;
+			src_8   += s_src;
+		}
+	}
+}
+
+static void fill_risp2_hole(void * risp, int w, int h, int s, uint8 * map, int cs)
+{
+	int      i, j;
+	uint8  * p8;
+	uint16 * p16; 
+	uint8    val_8;
+	uint16   val_16;
+
+	if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		p16 = (uint16 *)risp;
+		for(i=0;i<w;i++)
+		{
+			for(j=0;j<h;j++)
+			{
+				if(map[i+j*s] == 0)
+				{
+					p16[i+j*s] = val_16;
+				}
+				val_16 = p16[i+j*s];
+			}
+		}
+	}
+	else if(cs == S360_COLORSPACE_YUV420)
+	{
+		p8 = (uint8 *)risp;
+		for(i=0;i<w;i++)
+		{
+			for(j=0;j<h;j++)
+			{
+				if(map[i+j*s] == 0)
+				{
+					p8[i+j*s] = val_8;
+				}
+				val_8 = p8[i+j*s];
+			}
+		}
+	}
+}
+
+/* ISP to RISP2 plane function */
+static int isp_to_risp2_plane(void *src, int w_src, int h_src, int s_src, \
+	void *dst, int s_dst, int w_tri, int h_tri, int is_luma, S360_SPH_COORD * map, int cs)
+{
+	int w_dst, h_dst;
+	int offset, pad;
+	uint8 * map_dst;
+
+	w_dst = (int)(w_tri * 2.5);
+	h_dst = h_tri * 4;
+	pad   = (is_luma)?RISP2_PAD:(RISP2_PAD>>1);
+
+	map_dst = (uint8 *)s360_malloc(s_dst*(h_dst+2*pad)*sizeof(uint8));
+	s360_mset(map_dst, 0, (s_dst*(h_dst+2*pad)*sizeof(uint8)));
+
+	// Top Triangles
+	offset = (h_tri<<1)*w_src + (w_tri*5);
+	copy_rect(map + offset, src, dst, w_src, w_tri*5, h_tri<<1, 0, 0, w_tri>>1, h_tri, s_src, s_dst, cs, map_dst);
+
+	offset = (h_tri<<1)*w_src + (w_tri>>1);
+	copy_rect(map + offset, src, dst, w_src, (w_tri>>1), h_tri<<1, (w_tri>>1), 0, w_tri<<1, h_tri, s_src, s_dst, cs, map_dst);
+	
+	// Centre-Block
+	offset = w_dst;
+	flip_rect_hor(map + offset, src, dst, w_src, w_dst, 0, 0, pad, w_dst, h_tri*3, s_src, s_dst, cs, map_dst);
+	
+	//Bottom Triangles
+	offset = 0;
+	copy_rect(map + offset, src, dst, w_src, 0, 0, 0, (h_tri + pad)<<1, w_dst, h_tri<<1, s_src, s_dst, cs, map_dst);
+	
+	offset = h_tri*w_src + 5*w_tri;
+	copy_rect(map + offset, src, dst, w_src, 5*w_tri, h_tri, 0, 3*h_tri+(pad<<1), w_tri>>1, h_tri, s_src, s_dst, cs, map_dst);
+
+	// Fill Pad
+	fill_risp2_hole(dst, w_dst, h_dst, s_dst, map_dst, cs);
+
+	s360_mfree(map_dst);
+	
+	return S360_OK;
+}
+
+/* ISP to RISPv2 main function */
+int s360_isp_to_risp2(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst;
+	int w_tri, h_tri;
+	int ret;
+
+	if(!IS_VALID_CS(img_src->colorspace))
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+	w_tri = GET_W_TRI_ISP(w_src);
+	h_tri = GET_H_TRI_ISP(w_tri);
+	w_dst = (int)(w_tri * 2.5);
+	h_dst = h_tri * 4 + (RISP2_PAD<<1);
+
+	ret = s360_img_realloc(img_dst, w_dst, h_dst, opt);
+	s360_assert_rv(ret == S360_OK, ret);
+
+	s360_img_reset(img_dst);
+
+	isp_to_risp2_plane(img_src->buffer[0], w_src, h_src, img_src->stride[0],\
+		img_dst->buffer[0], img_dst->stride[0], w_tri, h_tri, 1, \
+		(S360_SPH_COORD *)map->layer[0], img_src->colorspace);
+	w_tri >>= 1;
+	h_tri >>= 1;
+	w_src >>= 1;
+	h_src >>= 1;
+	isp_to_risp2_plane(img_src->buffer[1], w_src, h_src, img_src->stride[1],\
+		img_dst->buffer[1], img_dst->stride[1], w_tri, h_tri, 0, \
+		(S360_SPH_COORD *)map->layer[1], img_src->colorspace);
+	isp_to_risp2_plane(img_src->buffer[2], w_src, h_src, img_src->stride[2],\
+		img_dst->buffer[2], img_dst->stride[2], w_tri, h_tri, 0, \
+		(S360_SPH_COORD *)map->layer[1], img_src->colorspace);
+	
+	return S360_OK;
+}
+
+/* RISP2 to ISP plane function */
+static int risp2_to_isp_plane(void *src, int w_src, int h_src, int s_src, \
+	void *dst, int s_dst, int w_tri, int h_tri, int opt, S360_SPH_COORD * map, \
+	int cs, unsigned int is_luma)
+{
+	int w_dst, h_dst;
+	int offset;
+	int pad; 
+	uint8 * map_dst;
+
+	w_dst = (int)(w_tri * 5.5);
+	h_dst = h_tri * 3;
+	pad   = (is_luma)?RISP2_PAD:(RISP2_PAD>>1);
+
+	map_dst = (uint8 *)s360_malloc(s_dst*(h_dst+(pad<<1))*sizeof(uint8));
+	s360_mset(map_dst, 0, (s_dst*(h_dst+(pad<<1))*sizeof(uint8)));
+
+	offset = (w_tri>>1) + (h_tri<<1)*w_dst;
+	copy_rect(map+offset, src, dst, w_dst, (w_tri>>1), 0, (w_tri>>1), \
+        (h_tri<<1), (w_tri<<1), h_tri, s_src, s_dst, cs, map_dst);
+
+	offset = (h_tri<<1)*w_dst + w_tri*5;
+	copy_rect(map+offset, src, dst, w_dst, 0, 0, w_tri*5, h_tri<<1, \
+        w_tri>>1, h_tri, s_src, s_dst, cs, map_dst);
+
+	offset = w_src;
+	flip_rect_hor_to_isp(map+offset, src, dst, w_dst, 0, pad, w_src, \
+        0, w_src, h_tri*3, s_src, s_dst, cs, map_dst);
+
+	offset = 0;
+	copy_rect(map+offset, src, dst, w_dst, 0, (h_tri<<1) + (pad<<1), 0, 0, \
+        w_src, (h_tri<<1), s_src, s_dst, cs, map_dst);
+
+	offset = h_tri*w_dst + w_tri*5;
+	copy_rect(map+offset, src, dst, w_dst, 0, h_tri*3 + (pad<<1), w_tri*5, \
+        h_tri, w_tri>>1, h_tri, s_src, s_dst, cs, map_dst);
+
+	//Padding
+	if(opt & S360_OPT_PAD)
+	{
+		if(cs == S360_COLORSPACE_YUV420_10)
+		{
+			pad_isp_plane_10b((uint16 *)dst, w_dst, h_dst, s_dst, map);
+		}
+		else if(cs == S360_COLORSPACE_YUV420)
+		{
+			pad_isp_plane((uint8 *)dst, w_dst, h_dst, s_dst, map);
+		}
+	}
+
+	free(map_dst);
+
+	return S360_OK;
+}
+
+/* RISPv2 to ISP main function */
+int s360_risp2_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, \
+    S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst;
+	int w_tri, h_tri;
+
+	if(!IS_VALID_CS(img_src->colorspace))
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+	w_tri = (int)(w_src / 2.5);
+	h_tri = (h_src-(RISP2_PAD<<1)) / 4;
+	w_dst = (int)(w_tri * 5.5);
+	h_dst = h_tri * 3;
+
+	s360_assert_rv(img_dst->width >= w_dst && img_dst->height >= h_dst, \
+        S360_ERR_INVALID_ARGUMENT);
+
+	s360_img_reset(img_dst);
+
+	risp2_to_isp_plane(img_src->buffer[0], w_src, h_src, img_src->stride[0],\
+		img_dst->buffer[0], img_dst->stride[0], w_tri, h_tri, opt, \
+		(S360_SPH_COORD *)map->layer[0], img_src->colorspace, 1);
+
+	w_tri >>= 1;
+	h_tri >>= 1;
+	w_src >>= 1;
+	h_src >>= 1;
+
+	risp2_to_isp_plane(img_src->buffer[1], w_src, h_src, img_src->stride[1],\
+		img_dst->buffer[1], img_dst->stride[1], w_tri, h_tri, opt, \
+		(S360_SPH_COORD *)map->layer[1], img_src->colorspace, 0);
+	risp2_to_isp_plane(img_src->buffer[2], w_src, h_src, img_src->stride[2],\
+		img_dst->buffer[2], img_dst->stride[2], w_tri, h_tri, opt, \
+		(S360_SPH_COORD *)map->layer[1], img_src->colorspace, 0);
+
+	return S360_OK;
+}
+
+
 /***********************  RISP V1 direct transformation  *********************/
 static int risp1_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int cs)

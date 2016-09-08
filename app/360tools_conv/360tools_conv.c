@@ -86,13 +86,13 @@ static S360_ARGS_OPT argopt[] = \
 		'f',  "convfmt", S360_ARGS_VAL_TYPE_INTEGER | S360_ARGS_VAL_TYPE_MANDATORY,
 		&opt_flag[CMD_FLAG_CONV_CFMT], &cfmt,
 		"converting format\n\t"
-		"1:  ERP to ISP\n\t2:  ISP to ERP\n\t"
-		"3:  ERP to CMP\n\t4:  CMP to ERP\n\t"
-		"5:  ERP to OHP\n\t6:  OHP to ERP\n\t"
-		"11: ISP to RISP\n\t12: RISP to ISP\n\t"
-		"13: CMP to RCMP\n\t14: RCMP to CMP\n\t"
-		"15: OHP to ROHP\n\t16: ROHP to OHP\n\t"
-		"21: ERP to RISP\n\t22: RISP to ERP\n\t"
+		"1:  ERP  to ISP\n\t2:  ISP  to ERP\n\t"
+		"3:  ERP  to CMP\n\t4:  CMP  to ERP\n\t"
+		"5:  ERP  to OHP\n\t6:  OHP  to ERP\n\t"
+		"11: ISP  to RISP\n\t12: RISP to ISP\n\t"
+		"13: CMP  to RCMP\n\t14: RCMP to CMP\n\t"
+		"15: OHP  to ROHP\n\t16: ROHP to OHP\n\t"
+		"21: ERP  to RISP\n\t22: RISP to ERP\n\t"
 	},
 	{
 		'l', "out_width", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
@@ -237,22 +237,22 @@ int main(int argc, const char * argv[])
 		goto END;
 	}
 
-	if((cfmt == CONV_FMT_ISP_TO_RISP) && (w_out != (GET_W_TRI_ISP(w_in))*5 || 
-		(h_out) != GET_H_TRI_ISP(GET_W_TRI_ISP(w_in))*2))
+	if((cfmt == CONV_FMT_ISP_TO_RISP) && (w_out != (GET_W_TRI_ISP(w_in)>>1)*5 || 
+		(h_out) != GET_H_TRI_ISP(GET_W_TRI_ISP(w_in))*4 + (RISP2_PAD<<1)))
 	{
 		s360_print("Invalid output resolution %dx%d, RISP does not support "
 			"resize\n:",	w_out, h_out);
-		s360_print("Suggested dimension: %dx%d\n", (GET_W_TRI_ISP(w_in))*5, 
-			GET_H_TRI_ISP(GET_W_TRI_ISP(w_in))*2 );
+		s360_print("Suggested dimension: %dx%d\n", (GET_W_TRI_ISP(w_in)>>1)*5, 
+			GET_H_TRI_ISP(GET_W_TRI_ISP(w_in))*4 + (RISP2_PAD<<1));
 		print_usage();
 		goto END;
 	}
 
-	if((cfmt == CONV_FMT_ERP_TO_OHP) && (w_out != w_in || (h_out*2) != h_in))
+	if((cfmt == CONV_FMT_OHP_TO_ROHP) && (w_out != w_in || (h_out*2) != h_in))
 	{
 		s360_print("Invalid output resolution %dx%d, ROHP does not support "
 			"resize\n:",	w_out, h_out);
-		s360_print("Suggested dimension: %dx%d\n", w_in, h_in/2);
+			s360_print("Suggested dimension: %dx%d\n", w_in, h_in/2);
 		print_usage();
 		goto END;
 	}
@@ -314,10 +314,10 @@ int main(int argc, const char * argv[])
 		fn_conv = s360_ohp_to_erp;
 		break;
 	case CONV_FMT_ISP_TO_RISP:
-		fn_conv = s360_isp_to_risp;
+		fn_conv = s360_isp_to_risp2;
 		break;
 	case CONV_FMT_RISP_TO_ISP:
-		fn_conv = s360_risp_to_isp;
+		fn_conv = s360_risp2_to_isp;
 		break;
 	case CONV_FMT_CMP_TO_RCMP:
 		fn_conv = s360_cmp_to_rcmp;
