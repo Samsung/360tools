@@ -49,7 +49,12 @@ Checkout the source for 360 Tools
 ## Supported formats
 	+	Equirectangular projection (ERP)
 	+	Icosahedral projection (ISP)
+	+	Octahedron projection (OHP)
 	+	Cubemap projection (CMP)
+	+	Truncated Square Pyramid projection (TSP)
+	+	Reshaped Icosahedral projection (RISP)
+	+	Reshaped Octahedron projection (ROHP)
+	+	Reshaped Cubemap projection (RCMP)
 	
 ## Supported quality metrics
 	+	PSNR - conventional Peak Signal to Noise Ratio quality metrics
@@ -74,6 +79,8 @@ Checkout the source for 360 Tools
 		-a	align to multiple of size
 		-u	disable padding
 		-c	config file
+		-p	pitch angle
+		-y	yaw angle
 		
 ## Quality metrics parameters
 	+	Mandatory
@@ -98,8 +105,10 @@ Checkout the source for 360 Tools
 	(S_ERP == S_ISP == S_CPP); Value is suggested for HM and JEM sw
 	+	ERP 		3840x1920
 		- ISP		4268x2016
+		- OHP		5984x2592
 		- CMP		3840x2880
 		
 	+	ERP 		4096x2048
 		- ISP		4268x2016
+		- OHP		6208x2688
 		- CMP		4096x3072
