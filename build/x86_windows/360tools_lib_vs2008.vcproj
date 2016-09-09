@@ -181,6 +181,10 @@
 				RelativePath="..\..\src\360tools_tbl.c"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\360tools_tsp.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -221,6 +225,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\360tools_ohp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\360tools_tsp.h"
 				>
 			</File>
 		</Filter>

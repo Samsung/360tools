@@ -51,6 +51,8 @@ static int align = 0;
 static int no_pad = 0;
 static int cs_in = 0;
 static int cs_out = 0;
+static int pitch = 90;
+static int yaw = 0;
 static int cs_int = INT_10_BIT_DEPTH;
 
 int opt_flag[CMD_FLAG_CONV_MAX] = {0};
@@ -89,6 +91,7 @@ static S360_ARGS_OPT argopt[] = \
 		"1:  ERP  to ISP\n\t2:  ISP  to ERP\n\t"
 		"3:  ERP  to CMP\n\t4:  CMP  to ERP\n\t"
 		"5:  ERP  to OHP\n\t6:  OHP  to ERP\n\t"
+		"7:  ERP  to TSP\n\t8:  TSP  to ERP\n\t"
 		"11: ISP  to RISP\n\t12: RISP to ISP\n\t"
 		"13: CMP  to RCMP\n\t14: RCMP to CMP\n\t"
 		"15: OHP  to ROHP\n\t16: ROHP to OHP\n\t"
@@ -131,6 +134,16 @@ static S360_ARGS_OPT argopt[] = \
 		'y',  "cs_out", S360_ARGS_VAL_TYPE_INTEGER,
 		&opt_flag[CMD_FLAG_CONV_CS_OUT], &cs_out,
 		"Output Color Space\n\t 1: YUV420 8-bit\n\t 2: YUV420 10-bit"
+	},
+	{
+		'p',  "pitch", S360_ARGS_VAL_TYPE_INTEGER,
+		&opt_flag[CMD_FLAG_CONV_PITCH], &pitch,
+		"TSP pitch angle [0,180] default is 90"
+	},
+	{
+		't',  "yaw", S360_ARGS_VAL_TYPE_INTEGER,
+		&opt_flag[CMD_FLAG_CONV_YAW], &yaw,
+		"TSP yaw angle [0,360] default is 0"
 	},
 	{ 0, "", S360_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
@@ -221,7 +234,7 @@ int main(int argc, const char * argv[])
 		goto END;
 	}
 
-	if((cfmt == CONV_FMT_ERP_TO_OHP) && (((w_out)%224 != 0 ||
+	if((cfmt == CONV_FMT_ERP_TO_OHP) && (((w_out)%8 != 0 ||
 		h_out != 2*NEAREST_EVEN((((int)((int)((w_out)/4)/4)*4))*SIN_60))))
 	{
 		/* some suggested dimensions */
@@ -253,6 +266,16 @@ int main(int argc, const char * argv[])
 		s360_print("Invalid output resolution %dx%d, ROHP does not support "
 			"resize\n:",	w_out, h_out);
 			s360_print("Suggested dimension: %dx%d\n", w_in, h_in/2);
+		print_usage();
+		goto END;
+	}
+
+	if((cfmt == CONV_FMT_ERP_TO_TSP) &&
+		((w_out%4 != 0 || h_out%4 != 0) || (w_out != h_out*2)))
+	{
+		s360_print("Invalid output resolution for TSP, suggested aspect "
+			"ratio 2:1 and must be multiple of 4: %dx%d\n", w_out, h_out);
+		s360_print("Suggested sample dimension: %dx%d\n", w_out, w_out/2);
 		print_usage();
 		goto END;
 	}
@@ -313,6 +336,12 @@ int main(int argc, const char * argv[])
 	case CONV_FMT_OHP_TO_ERP:
 		fn_conv = s360_ohp_to_erp;
 		break;
+	case CONV_FMT_ERP_TO_TSP:
+		fn_conv = s360_erp_to_tsp;
+		break;
+	case CONV_FMT_TSP_TO_ERP:
+		fn_conv = s360_tsp_to_erp;
+		break;
 	case CONV_FMT_ISP_TO_RISP:
 		fn_conv = s360_isp_to_risp2;
 		break;
@@ -351,7 +380,7 @@ int main(int argc, const char * argv[])
 		goto END;
 	}
 
-	map = s360_map_create(w_in, h_in, w_out, h_out, cfmt, opt);
+	map = s360_map_create(w_in, h_in, w_out, h_out, cfmt, opt, pitch, yaw);
 
 	while(s360_img_read(fpi, imgi, cs_in) == 0)
 	{

@@ -1423,7 +1423,6 @@ int s360_risp_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_M
 
 /*********************************  RISP V2  *********************************/
 
-
 /* ISP to RISP2 plane function */
 
 static void copy_rect(S360_SPH_COORD * map, void * src, void * dst, \

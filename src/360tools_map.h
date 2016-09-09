@@ -47,7 +47,7 @@ extern "C"
 #define S360_ALIGN(val, align)       (((val) + (align) - 1) / (align) * (align))
 
 	/* create Map */
-	S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt, int opt);
+	S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt, int opt, int pitch, int yaw);
 	/* Delete Map */
 	void s360_map_delete(S360_MAP * map);
 

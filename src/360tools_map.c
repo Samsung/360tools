@@ -1045,28 +1045,165 @@ static int map_erp_cpp_to_cmp(S360_MAP * map, int opt)
 	return S360_OK;
 }
 
-S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt, int opt)
+/* -----------------------------------ERP TO TSP----------------------------------------*/
+static void rotate_sample(double *v, int pitch, int yaw)
+{
+	double sy, sp, cy, cp, vx, vy, vz;
+
+	pitch -= 90;
+	sy = sin((double)yaw * PI / 180.0);
+	sp = -sin((double)pitch * PI / 180.0);
+	cy = cos((double)yaw * PI / 180.0);
+	cp = cos((double)pitch * PI / 180.0);
+	vx = v[0];
+	vy = v[1];
+	vz = v[2];
+	v[0] = vx * cy - vy * sy * sp + vz * sy * cp;
+	v[1] = vy * cp + vz * sp;
+	v[2] = vx * (-sy) - vy * cy * sp + vz * cy * cp;
+}
+
+static void erp2tsp_sample(int w_dst, int h_dst, int squ_idx, S360_SPH_COORD * map, int w_squ, double j, double i, int pitch, int yaw)
+{
+	double  vector_12[3], vector_13[3];
+	double  d12, d13, d12_scl, d13_scl;
+	double  xyz[3];
+	int     v_1_3d, v_2_3d, v_3_3d, v_4_3d;
+	S360_SPH_COORD  coord;
+
+	v_1_3d = tbl_vidx_erp2cmp[squ_idx][0];
+	v_2_3d = tbl_vidx_erp2cmp[squ_idx][1];
+	v_3_3d = tbl_vidx_erp2cmp[squ_idx][2];
+	v_4_3d = tbl_vidx_erp2cmp[squ_idx][3];
+
+	v3d_sub(tbl_squ_xyz[v_2_3d], tbl_squ_xyz[v_1_3d], vector_12);
+	d12 = v3d_norm(vector_12);
+	v3d_sub(tbl_squ_xyz[v_3_3d], tbl_squ_xyz[v_1_3d], vector_13);
+	d13 = v3d_norm(vector_13);
+	d12_scl = d12 * i;
+	d13_scl = d13 * j;
+	v3d_affine(vector_12, d12_scl, tbl_squ_xyz[v_1_3d], xyz);
+	v3d_affine(vector_13, d13_scl, xyz, xyz);
+	rotate_sample(xyz, pitch, yaw);
+	v3d_norm(xyz);
+	cart_to_sph(xyz[0], xyz[2], xyz[1], &coord);
+	*map = coord;
+}
+
+static void init_sph2tsp(S360_SPH_COORD  * map, int w_dst, int h_dst, int w_squ, int pitch, int yaw)
+{
+	int i;
+	int mx, my;
+	double x, y, x0, y0;
+
+	for (my = 0; my < w_squ; my++)
+	{
+		for (mx = 0; mx < 2*w_squ; mx++)
+		{
+			x = (double)mx / (2.0 * w_squ);
+			y = (double)my / w_squ;
+
+			if (0.0 <= x && x < 0.5)
+			{
+				i = 1;
+				x = x/0.5;
+			}
+			else if (0.6875 <= x && x < 0.8125 && 0.375 <= y && y < 0.625)
+			{
+				i = 5;
+				x = (x - 0.6875)/0.125;
+				y = (y - 0.375)/0.25;
+			}
+			else if (0.5 <= x && x < 0.6875 && 
+				((0.0 <= y && y < 0.375 && y >= 2.0*(x - 0.5)) ||
+				(0.375 <= y && y < 0.625) ||
+				(0.625 <= y && y < 1.0 && y <= 2.0*(1.0 - x) )))
+			{
+				i = 4;
+				x0 = x;
+				x = (x - 0.5)/0.1875;
+				y = (y - 2.0*x0 + 1.0)/(3.0 - 4.0*x0);
+			}
+			else if (0.8125 <= x && x < 1.0 && 
+				((0.0 <= y && y < 0.375 && x >= (1.0 - y/2.0)) ||
+				(0.375 <= y && y < 0.625) ||
+				(0.625 <= y && y < 1.0 && y <= (2.0*x - 1.0) )))
+			{
+				i = 3;
+				x0 = x;
+				x = (x - 0.8125)/0.1875;
+				y = (y + 2.0*x0 - 2.0)/(4.0*x0 - 3.0);
+			}
+			else if (0.0 <= y && y < 0.375 &&
+				((0.5 <= x && x < 0.8125 && y < 2.0*(x - 0.5)) ||
+				(0.6875 <= x && x < 0.8125) ||
+				(0.8125 <= x && x < 1.0 && x < (1.0 - y/2.0) )))
+			{
+				i = 0;
+				y0 = y;
+				y = (0.375 - y)/0.375;
+				x = (1.0 - x - 0.5*y0)/(0.5 - y0);
+			}
+			else
+			{
+				i = 2;
+				y0 = y;
+				y = (1.0 - y)/0.375;
+				x = (0.5 - x + 0.5*y0)/(y0 - 0.5);
+			}
+			erp2tsp_sample(w_dst, h_dst, i, &(map[mx]), w_squ, x, y, pitch, yaw);
+		}
+		map += w_dst;
+	}
+}
+
+static int map_erp_cpp_to_tsp(S360_MAP * map, int opt)
+{
+	int w_dst, h_dst, w_squ;
+
+	w_dst = map->width;
+	h_dst = map->height;
+	w_squ = NEAREST_EVEN(w_dst / 2.0);
+
+	init_sph2tsp(map->layer[0], w_dst, h_dst, w_squ, map->pitch, map->yaw);
+	init_sph2tsp(map->layer[1], (w_dst >> 1), (h_dst >> 1), (w_squ >> 1), map->pitch, map->yaw);
+
+	return S360_OK;
+}
+
+S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt, int opt, int pitch, int yaw)
 {
 	S360_MAP * map = NULL;
 	int(*fn_map)(S360_MAP * map, int opt) = NULL;
 
 	if (cfmt == CONV_FMT_ERP_TO_CMP  || cfmt == CONV_FMT_ERP_TO_ISP  || \
 		cfmt == CONV_FMT_ISP_TO_RISP || cfmt == CONV_FMT_RISP_TO_ISP || \
-		cfmt == CONV_FMT_ERP_TO_OHP  || \
+		cfmt == CONV_FMT_ERP_TO_TSP  || cfmt == CONV_FMT_ERP_TO_OHP  || \
 		cfmt == CONV_FMT_OHP_TO_ROHP || cfmt == CONV_FMT_ROHP_TO_OHP )
 	{
 		map = (S360_MAP*)s360_malloc(sizeof(S360_MAP));
 		s360_assert_rv(map, NULL);
 		
-		if (cfmt == CONV_FMT_ISP_TO_RISP || cfmt == CONV_FMT_OHP_TO_ROHP)
+		if (cfmt == CONV_FMT_ERP_TO_TSP)
+		{
+			map->width = w_dst * TSPAA_S;
+			map->height = h_dst * TSPAA_S;
+			map->pitch = pitch;
+			map->yaw = yaw;
+		}
+		else if (cfmt == CONV_FMT_ISP_TO_RISP || cfmt == CONV_FMT_OHP_TO_ROHP)
 		{
 			map->width = w_src;
 			map->height = h_src;
+			map->pitch = 0;
+			map->yaw = 0;
 		}
 		else
 		{
 			map->width = w_dst;
 			map->height = h_dst;
+			map->pitch = 0;
+			map->yaw = 0;
 		}
 
 		map->layer[0] = s360_malloc((map->width)*(map->height)*sizeof(S360_SPH_COORD));
@@ -1082,6 +1219,9 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 			break;
 		case CONV_FMT_ERP_TO_ISP:
 			fn_map = map_erp_cpp_to_isp;
+			break;
+		case CONV_FMT_ERP_TO_TSP:
+			fn_map = map_erp_cpp_to_tsp;
 			break;
 		case CONV_FMT_ISP_TO_RISP:
 			fn_map = map_isp_to_risp;

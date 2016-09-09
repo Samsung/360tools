@@ -442,6 +442,74 @@ void resample_2d_10b(void * src, int w_src, int h_src, int s_src, \
 
 #endif
 
+void resample_tsp_2d(void * src, int w_start, int w_end, int w_src, int h_src, int s_src, \
+	void * dst, int w_dst, int i, int j, S360_SPH_COORD  * map)
+{
+	int x, y, m, n;
+	uint8 * src_8;
+	uint8 * dst_8;
+	int sub = TSPAA_S;
+	int num = sub * sub;
+	unsigned long int map_idx = 0, sum = 0, a;
+
+	src_8 = (uint8 *)src;
+	dst_8 = (uint8 *)dst;
+
+	for (n = 0; n<sub; n++)
+	{
+		for (m = 0; m<sub; m++)
+		{
+			map_idx = (j * sub + n) * w_dst * sub + i * sub + m;
+			if (map[map_idx].lng != -1)
+			{
+				x = (int)(map[map_idx].lng * (w_src - 1) / 360.0 + 0.5);
+				y = (int)(map[map_idx].lat * (h_src - 1) / 180.0 + 0.5);
+
+				if(y >= 0 && x >= w_start && x < w_end && y < h_src)
+				{
+					sum += src_8[x + y * s_src];
+				}
+			}
+		}
+	}
+	a = (sum + (num>>1))/num;
+	dst_8[i] = S360_CLIP_S32_TO_U8((int)a);
+}
+
+void resample_tsp_2d_10b(void * src, int w_start, int w_end, int w_src, int h_src, int s_src, \
+	void * dst, int w_dst, int i, int j, S360_SPH_COORD  * map)
+{
+	int x, y, m, n;
+	uint16 * src_16;
+	uint16 * dst_16;
+	int sub = TSPAA_S;
+	int num = sub * sub;
+	unsigned long int map_idx = 0, sum = 0, a;
+
+	src_16 = (uint16 *)src;
+	dst_16 = (uint16 *)dst;
+
+	for (n = 0; n<sub; n++)
+	{
+		for (m = 0; m<sub; m++)
+		{
+			map_idx = (j * sub + n) * w_dst * sub + i * sub + m;
+			if (map[map_idx].lng != -1)
+			{
+				x = (int)(map[map_idx].lng * (w_src - 1) / 360.0 + 0.5);
+				y = (int)(map[map_idx].lat * (h_src - 1) / 180.0 + 0.5);
+
+				if(y >= 0 && x >= w_start && x < w_end && y < h_src)
+				{
+					sum += src_16[x + y * s_src];
+				}
+			}
+		}
+	}
+	a = (sum + (num>>1))/num;
+	dst_16[i] = S360_CLIP_S32_TO_U10((int)a);
+}
+
 resample_fn resample_fp(int cs)
 {
 	if (cs == S360_COLORSPACE_YUV420)

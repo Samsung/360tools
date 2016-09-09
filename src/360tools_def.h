@@ -71,6 +71,9 @@ extern "C"
 #define NULL                     (void*)0
 #endif
 
+/* TSP macros ****************************************************************/
+#define TSPAA_S 4
+
 /* redefined types ***********************************************************/
 #if defined(WIN32) || defined(WIN64)
 typedef __int8                 int8;
@@ -200,6 +203,8 @@ typedef struct
 	S360_SPH_COORD  * layer[2]; /* map for each plane*/
 	int		width;
 	int		height;
+	int		pitch;
+	int		yaw;
 }S360_MAP;
 
 /* Conversion Formats ******************************************************/
@@ -211,6 +216,8 @@ typedef enum
     CONV_FMT_CMP_TO_ERP,
     CONV_FMT_ERP_TO_OHP,
     CONV_FMT_OHP_TO_ERP,
+    CONV_FMT_ERP_TO_TSP,
+    CONV_FMT_TSP_TO_ERP,
     CONV_FMT_ISP_TO_RISP=11,
     CONV_FMT_RISP_TO_ISP,
     CONV_FMT_CMP_TO_RCMP,
