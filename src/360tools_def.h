@@ -72,7 +72,7 @@ extern "C"
 #endif
 
 /* TSP macros ****************************************************************/
-#define TSPAA_S 4
+#define TSPAA_S 5
 
 /* redefined types ***********************************************************/
 #if defined(WIN32) || defined(WIN64)

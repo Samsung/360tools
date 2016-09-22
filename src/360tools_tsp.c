@@ -14,7 +14,7 @@
  *  * Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- *  * Neither the name of Samsung Electronics Co., Ltd. nor the names of its
+ *  * Neither the name of Qualcomm inc. nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
  *
@@ -44,7 +44,7 @@ static int erp_to_tsp_plane(void * src, int w_src, int h_src, int s_src, \
 		void * dst, int w_dst, int x_dst, int y_dst, S360_SPH_COORD  * map);
 	int sub = TSPAA_S;
 	int num = sub * sub;
-	unsigned long int map_idx;
+	unsigned int map_idx;
 	double x, y;
 	int i, j;
 	int w_start, w_end;
@@ -169,13 +169,13 @@ static void tsp_to_erp_sph2point(double  lng, double lat, int w_squ, double* x, 
 	xyz[2] = sin(lat) * sin(lng);
 	xyz[1] = cos(lat);
 
-	squ_idx = get_squ_idx(xyz[0], xyz[1], xyz[2], tbl_squ_center_xyz);
-	v_1_3d = tbl_vidx_erp2cmp[squ_idx][0];
-	v_2_3d = tbl_vidx_erp2cmp[squ_idx][1];
-	v_3_3d = tbl_vidx_erp2cmp[squ_idx][2];
-	v_4_3d = tbl_vidx_erp2cmp[squ_idx][3];
+	squ_idx = get_squ_idx(xyz[0], xyz[1], xyz[2], tbl_tsp_center_xyz);
+	v_1_3d = tbl_vidx_erp2tsp[squ_idx][0];
+	v_2_3d = tbl_vidx_erp2tsp[squ_idx][1];
+	v_3_3d = tbl_vidx_erp2tsp[squ_idx][2];
+	v_4_3d = tbl_vidx_erp2tsp[squ_idx][3];
 
-	v3d_scale_face(tbl_face_eqn[squ_idx], xyz);
+	v3d_scale_face(tbl_tspface_eqn[squ_idx], xyz);
 	v3d_sub(tbl_squ_xyz[v_2_3d], tbl_squ_xyz[v_1_3d], vec_12);
 	v3d_sub(tbl_squ_xyz[v_3_3d], tbl_squ_xyz[v_1_3d], vec_13);
 	v3d_sub(xyz, tbl_squ_xyz[v_1_3d], vec_1_xyz);
@@ -240,9 +240,9 @@ static int tsp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 		s_dst <<= 1;
 	}
 
-	v_1_3d = tbl_vidx_erp2cmp[0][0];
-	v_2_3d = tbl_vidx_erp2cmp[0][1];
-	v_3_3d = tbl_vidx_erp2cmp[0][2];
+	v_1_3d = tbl_vidx_erp2tsp[0][0];
+	v_2_3d = tbl_vidx_erp2tsp[0][1];
+	v_3_3d = tbl_vidx_erp2tsp[0][2];
 
 	v3d_sub(tbl_squ_xyz[v_2_3d], tbl_squ_xyz[v_1_3d], vec_12);
 	d12 = GET_DIST3D(vec_12[0], vec_12[1], vec_12[2]);

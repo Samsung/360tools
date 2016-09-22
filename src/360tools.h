@@ -142,6 +142,10 @@ extern const double tbl_squ_center_xyz[6][3];
 extern const int tbl_vidx_erp2cmp[6][4];
 extern double tbl_face_eqn[6][4];
 
+extern const int tbl_vidx_erp2tsp[6][4];
+extern double tbl_tspface_eqn[6][4];
+extern double tbl_tsp_center_xyz[6][3];
+
 extern double tbl_tri_xyz[12][3];
 extern const int tbl_vidx_erp2isp[20][3];
 extern const int tbl_vidx_isp2erp[20][3];

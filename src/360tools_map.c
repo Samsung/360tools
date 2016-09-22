@@ -1050,20 +1050,21 @@ static void rotate_sample(double *v, int pitch, int yaw)
 {
 	double sy, sp, cy, cp, vx, vy, vz;
 
-	pitch -= 90;
+	pitch = 90 - pitch;
 	sy = sin((double)yaw * PI / 180.0);
-	sp = -sin((double)pitch * PI / 180.0);
+	sp = sin((double)pitch * PI / 180.0);
 	cy = cos((double)yaw * PI / 180.0);
 	cp = cos((double)pitch * PI / 180.0);
 	vx = v[0];
 	vy = v[1];
 	vz = v[2];
-	v[0] = vx * cy - vy * sy * sp + vz * sy * cp;
-	v[1] = vy * cp + vz * sp;
-	v[2] = vx * (-sy) - vy * cy * sp + vz * cy * cp;
+
+	v[0] = vx * cy * cp - vy * cy * sp + vz * sy;
+	v[1] = vx * sp + vy * cp;
+	v[2] = vx * (-sy) * cp + vy * sy * sp + vz * cy;
 }
 
-static void erp2tsp_sample(int w_dst, int h_dst, int squ_idx, S360_SPH_COORD * map, int w_squ, double j, double i, int pitch, int yaw)
+static void erp2tsp_sample(int squ_idx, S360_SPH_COORD * map, double j, double i, int pitch, int yaw)
 {
 	double  vector_12[3], vector_13[3];
 	double  d12, d13, d12_scl, d13_scl;
@@ -1071,10 +1072,10 @@ static void erp2tsp_sample(int w_dst, int h_dst, int squ_idx, S360_SPH_COORD * m
 	int     v_1_3d, v_2_3d, v_3_3d, v_4_3d;
 	S360_SPH_COORD  coord;
 
-	v_1_3d = tbl_vidx_erp2cmp[squ_idx][0];
-	v_2_3d = tbl_vidx_erp2cmp[squ_idx][1];
-	v_3_3d = tbl_vidx_erp2cmp[squ_idx][2];
-	v_4_3d = tbl_vidx_erp2cmp[squ_idx][3];
+	v_1_3d = tbl_vidx_erp2tsp[squ_idx][0];
+	v_2_3d = tbl_vidx_erp2tsp[squ_idx][1];
+	v_3_3d = tbl_vidx_erp2tsp[squ_idx][2];
+	v_4_3d = tbl_vidx_erp2tsp[squ_idx][3];
 
 	v3d_sub(tbl_squ_xyz[v_2_3d], tbl_squ_xyz[v_1_3d], vector_12);
 	d12 = v3d_norm(vector_12);
@@ -1151,13 +1152,13 @@ static void init_sph2tsp(S360_SPH_COORD  * map, int w_dst, int h_dst, int w_squ,
 				y = (1.0 - y)/0.375;
 				x = (0.5 - x + 0.5*y0)/(y0 - 0.5);
 			}
-			erp2tsp_sample(w_dst, h_dst, i, &(map[mx]), w_squ, x, y, pitch, yaw);
+			erp2tsp_sample(i, &(map[mx]), x, y, pitch, yaw);
 		}
 		map += w_dst;
 	}
 }
 
-static int map_erp_cpp_to_tsp(S360_MAP * map, int opt)
+static int map_erp_to_tsp(S360_MAP * map, int opt)
 {
 	int w_dst, h_dst, w_squ;
 
@@ -1206,8 +1207,8 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 			map->yaw = 0;
 		}
 
-		map->layer[0] = s360_malloc((map->width)*(map->height)*sizeof(S360_SPH_COORD));
-		map->layer[1] = s360_malloc((map->width >> 1)*(map->height >> 1)*sizeof(S360_SPH_COORD));
+		map->layer[0] = (S360_SPH_COORD*)s360_malloc((map->width)*(map->height)*sizeof(S360_SPH_COORD));
+		map->layer[1] = (S360_SPH_COORD*)s360_malloc((map->width >> 1)*(map->height >> 1)*sizeof(S360_SPH_COORD));
 
 		map_init(map->layer[0], map->width, map->height);
 		map_init(map->layer[1], (map->width >> 1), (map->height >> 1));
@@ -1221,7 +1222,7 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 			fn_map = map_erp_cpp_to_isp;
 			break;
 		case CONV_FMT_ERP_TO_TSP:
-			fn_map = map_erp_cpp_to_tsp;
+			fn_map = map_erp_to_tsp;
 			break;
 		case CONV_FMT_ISP_TO_RISP:
 			fn_map = map_isp_to_risp;
