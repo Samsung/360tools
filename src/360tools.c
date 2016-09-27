@@ -454,30 +454,39 @@ void resample_tsp_2d(void * src, int w_start, int w_end, int w_src, int h_src, i
 	uint8 * src_8;
 	uint8 * dst_8;
 	int sub = TSPAA_S;
-	int num = sub * sub;
-	unsigned long int map_idx = 0, sum = 0, a;
+	int num = 0;
+	int subdiv2 = (sub>>1);
+	uint32 map_idx = 0, sum = 0, a = 0;
 
 	src_8 = (uint8 *)src;
 	dst_8 = (uint8 *)dst;
 
-	for (n = 0; n<sub; n++)
+	for (n = -subdiv2; n <= subdiv2; n++)
 	{
-		for (m = 0; m<sub; m++)
+		for (m = -subdiv2; m <= subdiv2; m++)
 		{
-			map_idx = (j * sub + n) * w_dst * sub + i * sub + m;
+			int idx_x = i * sub + m;
+			int idx_y = j * sub + n;
+			if (idx_x < 0) idx_x = 0;
+			if (idx_y < 0) idx_y = 0;
+			map_idx = idx_y * w_dst * sub + idx_x;
 			if (map[map_idx].lng != -1)
 			{
-				x = (int)(map[map_idx].lng * (w_src - 1) / 360.0 + 0.5);
-				y = (int)(map[map_idx].lat * (h_src - 1) / 180.0 + 0.5);
+				x = (int)(map[map_idx].lng * w_src / 360.0 + 0.5);
+				y = (int)(map[map_idx].lat * h_src / 180.0 + 0.5);
 
 				if(y >= 0 && x >= w_start && x < w_end && y < h_src)
 				{
 					sum += src_8[x + y * s_src];
+					num++;
 				}
 			}
 		}
 	}
-	a = (sum + (num>>1))/num;
+	if (num > 0)
+	{
+		a = (sum + (num>>1))/num;
+	}
 	dst_8[i] = S360_CLIP_S32_TO_U8((int)a);
 }
 
@@ -488,30 +497,39 @@ void resample_tsp_2d_10b(void * src, int w_start, int w_end, int w_src, int h_sr
 	uint16 * src_16;
 	uint16 * dst_16;
 	int sub = TSPAA_S;
-	int num = sub * sub;
-	unsigned long int map_idx = 0, sum = 0, a;
+	int num = 0;
+	int subdiv2 = (sub>>1);
+	uint32 map_idx = 0, sum = 0, a = 0;
 
 	src_16 = (uint16 *)src;
 	dst_16 = (uint16 *)dst;
 
-	for (n = 0; n<sub; n++)
+	for (n = -subdiv2; n <= subdiv2; n++)
 	{
-		for (m = 0; m<sub; m++)
+		for (m = -subdiv2; m <= subdiv2; m++)
 		{
-			map_idx = (j * sub + n) * w_dst * sub + i * sub + m;
+			int idx_x = i * sub + m;
+			int idx_y = j * sub + n;
+			if (idx_x < 0) idx_x = 0;
+			if (idx_y < 0) idx_y = 0;
+			map_idx = idx_y * w_dst * sub + idx_x;
 			if (map[map_idx].lng != -1)
 			{
-				x = (int)(map[map_idx].lng * (w_src - 1) / 360.0 + 0.5);
-				y = (int)(map[map_idx].lat * (h_src - 1) / 180.0 + 0.5);
+				x = (int)(map[map_idx].lng * w_src / 360.0 + 0.5);
+				y = (int)(map[map_idx].lat * h_src / 180.0 + 0.5);
 
 				if(y >= 0 && x >= w_start && x < w_end && y < h_src)
 				{
 					sum += src_16[x + y * s_src];
+					num++;
 				}
 			}
 		}
 	}
-	a = (sum + (num>>1))/num;
+	if (num > 0)
+	{
+		a = (sum + (num>>1))/num;
+	}
 	dst_16[i] = S360_CLIP_S32_TO_U10((int)a);
 }
 
