@@ -31,35 +31,22 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef __360TOOLS_OHP_H__2346758963478562398457629384562938576234__
-#define __360TOOLS_OHP_H__2346758963478562398457629384562938576234__
-
+#ifndef __360TOOLS_CPP_H__203849891889128128376984785187981283745__
+#define __360TOOLS_CPP_H__203849891889128128376984785187981283745__
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-/* to OHP */
-int s360_erp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_rohp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_cpp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-
-/* from ohp */
-int s360_ohp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_ohp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_ohp_to_rohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_cpp_bypass(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_pad_cpp(S360_IMAGE * img);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif /* __360TOOLS_OHP_H__2346758963478562398457629384562938576234__ */
+#endif /* __360TOOLS_CPP_H__203849891889128128376984785187981283745__ */
 
 

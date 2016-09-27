@@ -295,3 +295,99 @@ int s360_tsp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 
 	return S360_OK;
 }
+
+static int tsp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
+	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int cs)
+{
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
+		double x, double y, void * dst, int x_dst);
+
+	double   vec_12[3], vec_13[3];
+	double   lng, lat, x, y;
+	double   d12, d13;
+	int      v_1_3d, v_2_3d, v_3_3d;
+	int      i, j;
+	uint8  * map, *map0;
+
+	if (cs == S360_COLORSPACE_YUV420)
+	{
+		fn_resample = resample_2d;
+	}
+	else if (cs == S360_COLORSPACE_YUV420_10)
+	{
+		fn_resample = resample_2d_10b;
+		s_dst <<= 1;
+	}
+
+	map = (uint8 *)s360_malloc(sizeof(uint8) * h_dst * w_dst);
+	cpp_map_plane(w_dst, h_dst, s_dst, map);
+	map0 = map;
+
+	v_1_3d = tbl_vidx_erp2tsp[0][0];
+	v_2_3d = tbl_vidx_erp2tsp[0][1];
+	v_3_3d = tbl_vidx_erp2tsp[0][2];
+
+	v3d_sub(tbl_squ_xyz[v_2_3d], tbl_squ_xyz[v_1_3d], vec_12);
+	d12 = GET_DIST3D(vec_12[0], vec_12[1], vec_12[2]);
+	v3d_sub(tbl_squ_xyz[v_3_3d], tbl_squ_xyz[v_1_3d], vec_13);
+	d13 = GET_DIST3D(vec_13[0], vec_13[1], vec_13[2]);
+
+	for (j = 0; j<h_dst; j++)
+	{
+		for (i = 0; i<w_dst; i++)
+		{
+			lng = ((double)i / w_dst)*(M_2PI)-PI;
+			lat = ((double)j / h_dst)*PI - M_PI_2;
+
+			lat = 3 * asin(lat / PI);
+			lng = lng / (2 * cos(2 * lat / 3) - 1);
+
+			lat += M_PI_2;
+			lng += PI;
+
+			if (*(map0 + i) != 1)
+				continue;
+
+			tsp_to_erp_sph2point(lng, lat, w_squ, &x, &y, d12, d13);
+			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+		}
+
+		dst = (void *)((uint8 *)dst + s_dst);
+		map0 += w_dst;
+	}
+	s360_mfree(map);
+	return S360_OK;
+}
+
+int s360_tsp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst;
+	int w_squ;
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+
+	w_dst = img_dst->width;
+	h_dst = img_dst->height;
+	w_squ = NEAREST_EVEN(w_src / 2.0);
+	
+	s360_img_reset(img_dst);
+
+	if (IS_VALID_CS(img_src->colorspace))
+	{
+		tsp_to_cpp_plane(img_src->buffer[0], w_src, h_src, img_src->stride[0], w_dst, h_dst, img_dst->stride[0], img_dst->buffer[0], w_squ, opt, img_src->colorspace);
+		w_squ >>= 1;
+		w_src >>= 1;
+		h_src >>= 1;
+		w_dst >>= 1;
+		h_dst >>= 1;
+		tsp_to_cpp_plane(img_src->buffer[1], w_src, h_src, img_src->stride[1], w_dst, h_dst, img_dst->stride[1], img_dst->buffer[1], w_squ, opt, img_src->colorspace);
+		tsp_to_cpp_plane(img_src->buffer[2], w_src, h_src, img_src->stride[2], w_dst, h_dst, img_dst->stride[2], img_dst->buffer[2], w_squ, opt, img_src->colorspace);
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+
+	return S360_OK;
+}

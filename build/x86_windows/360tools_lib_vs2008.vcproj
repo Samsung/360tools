@@ -158,6 +158,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\360tools_cpp.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\360tools_erp.c"
 				>
 			</File>
@@ -201,6 +205,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\360tools_cmp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\360tools_cpp.h"
 				>
 			</File>
 			<File

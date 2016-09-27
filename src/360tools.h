@@ -50,16 +50,16 @@ extern "C"
 #define S360_OPT_PAD                    (1<<0)
 
 /* constants *****************************************************************/
-#define PI                      (3.14159265358979323846)
-#define SIN_60                  (0.86602540378443864676)
+#define PI                      (3.14159265358979323846f)
+#define SIN_60                  (0.86602540378443864676f)
 #ifndef M_PI_2
 #define M_PI_2                  (1.5707963f)  /* pi/2 */
 #endif
 #define M_2PI                   (6.2831853f)  /* pi*2 */
 
 /* utilities *****************************************************************/
-#define DEG2RAD(deg)            ((deg) * PI / 180)
-#define RAD2DEG(rad)            ((rad) * 180 / PI)
+#define DEG2RAD(deg)            ((deg) * PI / 180.0f)
+#define RAD2DEG(rad)            ((rad) * 180.0f / PI)
 #define CEILING(x)              ((x) - (int)(x) > 0 ? (int)(x) + 1 : (int)(x))
 #define NEAREST_EVEN(x)         ((int)(x) + ((int)(x) & 1))
 #define ROUNDUP_EVEN(x)         ((int)((x) + 1) & 0xFFFFFFFE)
@@ -71,7 +71,6 @@ void cart_to_sph(double x, double y, double z, S360_SPH_COORD  * coord);
 /* resample functions ********************************************************/
 #define WIDTH_CPP               3840
 #define HEIGHT_CPP              1920
-#define USE_LANCZOS             1
 #define LANCZOS_TAB_SIZE        3
 #define LANCZOS_FAST_MODE       1
 #if LANCZOS_FAST_MODE
@@ -91,8 +90,9 @@ resample_fn resample_fp(int cs);
 /* padding *******************************************************************/
 #define USE_MIRROR_PADDING      1
 #define PAD_SIZE                16
+#define PAD_SIZE_RISP           16
 #define PAD_ALIGN               3
-#define RISP2_PAD               8
+#define RISP2_PAD               20
 
 void cpp_map_plane(int w_map, int h_map, int s_map, uint8 * map);
 void pad_cpp_plane(uint8 * buf, int w, int h, int s, uint8 * map0);
@@ -166,6 +166,7 @@ void s360_deinit(void);
 #include "360tools_cmp.h"
 #include "360tools_ohp.h"
 #include "360tools_tsp.h"
+#include "360tools_cpp.h"
 
 #ifdef __cplusplus
 }

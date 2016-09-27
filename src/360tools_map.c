@@ -227,7 +227,7 @@ static int map_to_ohp(S360_MAP * map, int opt)
 }
 
 static void erp2isp_triangle(int x, int w, int w_tri, int h_tri, \
-	int tri_idx, S360_SPH_COORD * map, int pad_sz, int plane)
+	int tri_idx, S360_SPH_COORD * map, int pad_sz, int align_sz, int is_risp)
 {
 	double  vector_12[3], vector_13[3], point12[3], point13[3];
 	double  point_vec[3], xyz[3];
@@ -245,7 +245,6 @@ static void erp2isp_triangle(int x, int w, int w_tri, int h_tri, \
 	int     y_start;
 	int     prev_align_left, prev_align_rt;
 	int     align;
-	int     align_sz;
 	
 	x_start = x;
 
@@ -255,17 +254,23 @@ static void erp2isp_triangle(int x, int w, int w_tri, int h_tri, \
 	{
 		pad_left = tbl_vidx_pad_isp[tri_idx][0];
 		pad_rt = tbl_vidx_pad_isp[tri_idx][1];
+		if((is_risp == 2) && (tri_idx == 9))
+		{
+			pad_rt = 0;
+		}
 	}
 	else
 	{
 		pad_left = pad_rt = 0;
 	}
+	if(is_risp == 1)
+	{
+		pad_left = pad_rt = 1;
+	}
 
 	if(tri_idx<5) y_start = 0;
 	else y_start = h_tri;
 	
-	align_sz = (plane==0)?PAD_ALIGN:PAD_ALIGN-1;
-
 	v_1_3d = tbl_vidx_erp2isp[tri_idx][0];
 	v_2_3d = tbl_vidx_erp2isp[tri_idx][1];
 	v_3_3d = tbl_vidx_erp2isp[tri_idx][2];
@@ -311,6 +316,9 @@ static void erp2isp_triangle(int x, int w, int w_tri, int h_tri, \
 			}
 			start_w = align - x_map;
 			start_w = (start_w + x_map < x_start) ? (x_start - x_map) : start_w;
+			if(is_risp == 1)
+				start_w = -pad_sz;
+
 			for (i = start_w; i<0; i++)
 			{
 				v3d_affine(point_vec, (i - 1) * d_step + d_step / 2, point12, xyz);
@@ -359,7 +367,9 @@ static void erp2isp_triangle(int x, int w, int w_tri, int h_tri, \
 			end_w = align - x_map;
 
 			if (x_map + end_w > w) end_w = w - x_map;
-
+			
+			if(is_risp == 1)
+				end_w = i + pad_sz;
 			for (; i<end_w; i++)
 			{
 				v3d_affine(point_vec, (i - 1) * d_step + d_step / 2, point12, xyz);
@@ -373,7 +383,7 @@ static void erp2isp_triangle(int x, int w, int w_tri, int h_tri, \
 }
 
 static void erp2isp_triangle_rev(int x, int w, int w_tri, int h_tri, \
-	int tri_idx, S360_SPH_COORD * map, int pad_sz, int plane)
+	int tri_idx, S360_SPH_COORD * map, int pad_sz, int align_sz, int is_risp)
 {
 	double  vector_12[3], vector_13[3], point12[3], point13[3];
 	double  point_vec[3], xyz[3];
@@ -390,23 +400,30 @@ static void erp2isp_triangle_rev(int x, int w, int w_tri, int h_tri, \
 	int     x_start, y_start;
 	int     prev_align_left, prev_align_rt;
 	int     align;
-	int     align_sz;
 
-	align_sz = (plane==0)?PAD_ALIGN:PAD_ALIGN-1;
 	prev_align_left = prev_align_rt = 0;
 
 	if(tri_idx<5) y_start = h_tri;
 	else y_start = h_tri*2;
 
-	if(pad_sz != 0)
+	if(is_risp == 1)
+	{
+		pad_left = pad_rt = 1;
+	}
+	else if(pad_sz != 0)
 	{
 		pad_left = tbl_vidx_pad_isp[tri_idx + 10][0];
 		pad_rt = tbl_vidx_pad_isp[tri_idx + 10][1];
+		if((is_risp == 2) && (tri_idx == 9))
+		{
+			pad_left = 0;
+		}
 	}
 	else
 	{
 		pad_left = pad_rt = 0;
 	}
+	
 	x_start = x;
 
 	v_1_3d = tbl_vidx_erp2isp[tri_idx + 10][0];
@@ -456,6 +473,8 @@ static void erp2isp_triangle_rev(int x, int w, int w_tri, int h_tri, \
 
 			if (tri_idx + 10 != 15)
 				start_w = (start_w + x_map < x_start) ? (x_start - x_map) : start_w;
+			if(is_risp == 1)
+				start_w = -pad_sz;
 			for (j = start_w; j<0; j++)
 			{
 				v3d_affine(point_vec, (j - 1) * d_step + d_step / 2, point12, xyz);
@@ -504,6 +523,8 @@ static void erp2isp_triangle_rev(int x, int w, int w_tri, int h_tri, \
 
 			if (x_map + end_w > w) end_w = w - x_map;
 			j++;
+			if(is_risp == 1)
+				end_w = j + pad_sz;
 			for (; j<end_w; j++)
 			{
 				v3d_affine(point_vec, (j - 1) * d_step + d_step / 2, point12, xyz);
@@ -516,9 +537,10 @@ static void erp2isp_triangle_rev(int x, int w, int w_tri, int h_tri, \
 	}
 }
 
-static void init_sph2isp_map(S360_SPH_COORD * map, int w_isp, int h_isp, int w_tri, int pad_sz, int plane)
+static void init_sph2isp_map(S360_SPH_COORD * map, int w_isp, int h_isp, int w_tri, int pad_sz, int plane, int is_risp)
 {
 	int i, x, y1, y2, h_tri, size;
+	int align_sz;
 
 	for (i = 0, size = w_isp*h_isp; i<size; i++)
 	{
@@ -529,34 +551,36 @@ static void init_sph2isp_map(S360_SPH_COORD * map, int w_isp, int h_isp, int w_t
 	h_tri = (h_isp / 3);
 	y1 = h_tri;
 	y2 = (h_tri << 1);
+	
+	align_sz = (plane==0)?PAD_ALIGN:PAD_ALIGN-1;
 
 	/* first row */
 	for (i = 0, x = 0; i<5; i++, x += w_tri)
 	{
-		erp2isp_triangle(x, w_isp, w_tri, y1, i, map, pad_sz, plane);
+		erp2isp_triangle(x, w_isp, w_tri, y1, i, map, pad_sz, align_sz, is_risp);
 	}
 
 	/* second row */
 	map += y1 * w_isp;
 	for (i = 5, x = (w_tri >> 1); i<10; i++, x += w_tri)
 	{
-		erp2isp_triangle(x, w_isp, w_tri, h_tri, i, map, pad_sz, plane);
+		erp2isp_triangle(x, w_isp, w_tri, h_tri, i, map, pad_sz, align_sz, is_risp);
 	}
 	for (i = 0, x = 0; i<5; i++, x += w_tri)
 	{
-		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz, plane);
+		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz, align_sz, is_risp);
 	}
 
 	/* third row */
 	map += (y2 - y1) * w_isp;
 	for (i = 5, x = (w_tri >> 1); i<10; i++, x += w_tri)
 	{
-		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz, plane);
+		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz, align_sz, is_risp);
 	}
 }
 
 static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
-	int tri_idx, S360_SPH_COORD * map, int pad_sz, int plane)
+	int tri_idx, S360_SPH_COORD * map, int pad_sz, int align_sz, int plane)
 {
 	double  vector_12[3], vector_13[3], point12[3], point13[3];
 	double  point_vec[3], xyz[3];
@@ -574,7 +598,6 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 	int     y_start;
 	int	    prev_align_left, prev_align_rt;
 	int     align;
-	int     align_sz;
 	int		risp_idx;
 	
 	x_start = x;
@@ -583,8 +606,7 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 
 	if(pad_sz != 0)
 	{
-		pad_left = tbl_vidx_pad_isp[tri_idx][0];
-		pad_rt = tbl_vidx_pad_isp[tri_idx][1];
+		pad_left = pad_rt = 1;
 	}
 	else
 	{
@@ -593,8 +615,6 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 
 	if(tri_idx<5) y_start = 0;
 	else y_start = h_tri;
-	
-	align_sz = (plane==0)?PAD_ALIGN:PAD_ALIGN-1;
 
 	v_1_3d = tbl_vidx_erp2isp[tri_idx][0];
 	v_2_3d = tbl_vidx_erp2isp[tri_idx][1];
@@ -645,7 +665,9 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 			{
 				v3d_affine(point_vec, (i - 1) * d_step + d_step / 2, point12, xyz);
 				v3d_norm(xyz);
-				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[x_map + i]);
+				risp_idx = x_map+i;
+				risp_idx = risp_idx >= w ? risp_idx-w : risp_idx;
+				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[risp_idx]);
 			}
 		}
 
@@ -679,9 +701,7 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 		if (pad_rt)
 		{
 			i++;
-
 			end_w += pad_sz;
-
 			if(((j+y_start) & ((1<<align_sz)-1)) == 0)
 			{
 				align = ((end_w + x_map)>>align_sz)<<align_sz;
@@ -695,12 +715,15 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 			end_w = align - x_map;
 
 			if (x_map + end_w > w) end_w = w - x_map;
-
+			
+			end_w = i+2*plane;
 			for (; i<end_w; i++)
 			{
 				v3d_affine(point_vec, (i - 1) * d_step + d_step / 2, point12, xyz);
 				v3d_norm(xyz);
-				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[x_map + i]);
+				risp_idx = x_map+i;
+				risp_idx = risp_idx >= w ? risp_idx-w : risp_idx;
+				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[risp_idx]);
 			}
 		}
 
@@ -709,7 +732,7 @@ static void erp2isp_triangle_half(int x, int w, int w_tri, int h_tri, \
 }
 
 static void erp2isp_triangle_rev_half(int x, int w, int w_tri, int h_tri, \
-	int tri_idx, S360_SPH_COORD * map, int pad_sz, int plane)
+	int tri_idx, S360_SPH_COORD * map, int pad_sz, int align_sz, int plane)
 {
 	double  vector_12[3], vector_13[3], point12[3], point13[3];
 	double  point_vec[3], xyz[3];
@@ -726,10 +749,8 @@ static void erp2isp_triangle_rev_half(int x, int w, int w_tri, int h_tri, \
 	int     x_start, y_start;
 	int	    prev_align_left, prev_align_rt;
 	int     align;
-	int     align_sz;
 	int		risp_idx;
 
-	align_sz = (plane==0)?PAD_ALIGN:PAD_ALIGN-1;
 	prev_align_left = prev_align_rt = 0;
 
 	if(tri_idx<5) y_start = h_tri;
@@ -737,8 +758,7 @@ static void erp2isp_triangle_rev_half(int x, int w, int w_tri, int h_tri, \
 
 	if(pad_sz != 0)
 	{
-		pad_left = tbl_vidx_pad_isp[tri_idx + 10][0];
-		pad_rt = tbl_vidx_pad_isp[tri_idx + 10][1];
+		pad_left = pad_rt = 1;
 	}
 	else
 	{
@@ -797,7 +817,9 @@ static void erp2isp_triangle_rev_half(int x, int w, int w_tri, int h_tri, \
 			{
 				v3d_affine(point_vec, (j - 1) * d_step + d_step / 2, point12, xyz);
 				v3d_norm(xyz);
-				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[x_map + j]);
+				risp_idx = x_map+j;
+				risp_idx = risp_idx >= w ? risp_idx-w : risp_idx;
+				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[risp_idx]);
 			}
 
 		}
@@ -847,11 +869,14 @@ static void erp2isp_triangle_rev_half(int x, int w, int w_tri, int h_tri, \
 
 			if (x_map + end_w > w) end_w = w - x_map;
 			j++;
+			end_w = j+2*plane;
 			for (; j<end_w; j++)
 			{
 				v3d_affine(point_vec, (j - 1) * d_step + d_step / 2, point12, xyz);
 				v3d_norm(xyz);
-				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[x_map + j]);
+				risp_idx = x_map+j;
+				risp_idx = risp_idx >= w ? risp_idx-w : risp_idx;
+				cart_to_sph(xyz[0], xyz[1], xyz[2], &map[risp_idx]);
 			}
 		}
 
@@ -863,6 +888,12 @@ static void init_sph_to_risp1_map(S360_SPH_COORD * map, int w_isp, int h_isp, in
 {
 	int i, x, y1, y2, h_tri, size;
 	S360_SPH_COORD * map1;
+	int pad_gap, dist;
+	int align_sz;
+
+	pad_gap = pad_sz*(2<<plane);
+	align_sz = 0;
+	dist = 2>>plane;
 
 	for (i = 0, size = w_isp*h_isp; i<size; i++)
 	{
@@ -876,59 +907,45 @@ static void init_sph_to_risp1_map(S360_SPH_COORD * map, int w_isp, int h_isp, in
 
 	map1 = map;
 	map = map1;
-	for (i = 5, x = (w_tri >> 1); i<9; i++, x += w_tri)
+	for (i = 5, x = (w_tri >> 1) + pad_gap*dist; i<9; i++, x += (pad_gap*dist + w_tri))
 	{
-		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz,plane);
+		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz,align_sz,1);
 	}
-	erp2isp_triangle_rev_half(x, w_isp, w_tri, h_tri, i, map, pad_sz,plane);
+	erp2isp_triangle_rev_half(x, w_isp, w_tri, h_tri, i, map, pad_sz,align_sz,dist);
 
 	map = map1;
-	for (i = 0, x = 0; i<5; i++, x += w_tri)
+	for (i = 0, x = (pad_gap/2)*dist; i<5; i++, x += (pad_gap*dist + w_tri))
 	{
-		erp2isp_triangle(x, w_isp, w_tri, y1, i, map, pad_sz,plane);
+		erp2isp_triangle(x, w_isp, w_tri, y1, i, map, pad_sz,align_sz,1);
 	}
 	map += y1 * w_isp;
-	for (i = 5, x = (w_tri >> 1); i<9; i++, x += w_tri)
+	for (i = 5, x = (w_tri >> 1) + (pad_gap)*dist; i<9; i++, x += (pad_gap*dist + w_tri))
 	{
-		erp2isp_triangle(x, w_isp, w_tri, h_tri, i, map, pad_sz,plane);
+		erp2isp_triangle(x, w_isp, w_tri, h_tri, i, map, pad_sz,align_sz,1);
 	}
-	erp2isp_triangle_half(x, w_isp, w_tri, h_tri, i, map, pad_sz,plane);
+	erp2isp_triangle_half(x, w_isp, w_tri, h_tri, i, map, pad_sz,align_sz,dist);
 	map = map1;
 	map += y1 * w_isp;
-	for (i = 0, x = 0; i<5; i++, x += w_tri)
+	for (i = 0, x = (pad_gap/2)*dist; i<5; i++, x += (pad_gap*dist + w_tri))
 	{
-		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz,plane);
+		erp2isp_triangle_rev(x, w_isp, w_tri, h_tri, i, map, pad_sz,align_sz,1);
 	}
-
-
 }
 
-/*------------------------------------RISP TO ISP---------------------------------------*/
-static int map_risp_to_isp(S360_MAP * map, int opt)
+/*------------------------------------RISP2---------------------------------------*/
+static int map_risp2(S360_MAP * map, int opt)
 {
-	int w_dst, h_dst, w_tri, h_tri;
-	w_dst = map->width;
-	h_dst = map->height;
-	w_tri = GET_W_TRI_ISP(w_dst);
-	h_tri = GET_H_TRI_ISP(w_tri);
+	int w, h, w_tri, h_tri;
+	int pad_sz;
+	
+	w      = map->width;
+	h      = map->height;
+	w_tri  = GET_W_TRI_ISP(w);
+	h_tri  = GET_H_TRI_ISP(w_tri);
 
-	init_sph2isp_map(map->layer[0], w_dst, h_dst, w_tri, 0, 0);
-	init_sph2isp_map(map->layer[1], (w_dst >> 1), (h_dst >> 1), (w_tri >> 1), 0, 1);
-
-	return S360_OK;
-}
-
-/*------------------------------------ISP TO RISP---------------------------------------*/
-static int map_isp_to_risp(S360_MAP * map, int opt)
-{
-	int w_src, h_src, w_tri, h_tri;
-	w_src = map->width;
-	h_src = map->height;
-	w_tri = GET_W_TRI_ISP(w_src);
-	h_tri = GET_H_TRI_ISP(w_tri);
-
-	init_sph2isp_map(map->layer[0], w_src, h_src, w_tri, 0, 0);
-	init_sph2isp_map(map->layer[1], (w_src >> 1), (h_src >> 1), (w_tri >> 1), 0, 1);
+	pad_sz = (opt & S360_OPT_PAD)? PAD_SIZE:0;
+	init_sph2isp_map(map->layer[0], w, h, w_tri, pad_sz, 0, 2);
+	init_sph2isp_map(map->layer[1], (w >> 1), (h>> 1), (w_tri >> 1), pad_sz>>1, 1, 2);
 
 	return S360_OK;
 }
@@ -954,8 +971,8 @@ static int map_erp_cpp_to_isp(S360_MAP * map, int opt)
 		pad_sz = 0;
 	}
 
-	init_sph2isp_map(map->layer[0], w_dst, h_dst, w_tri, pad_sz, 0);
-	init_sph2isp_map(map->layer[1], w_dst >> 1, h_dst >> 1, w_tri >> 1, pad_sz >> 1, 1);
+	init_sph2isp_map(map->layer[0], w_dst, h_dst, w_tri, pad_sz, 0, 0);
+	init_sph2isp_map(map->layer[1], w_dst >> 1, h_dst >> 1, w_tri >> 1, pad_sz >> 1, 1, 0);
 
 	return S360_OK;
 }
@@ -1016,13 +1033,20 @@ static int map_erp_to_risp1(S360_MAP * map, int opt)
 	int w_dst, h_dst, w_tri, h_tri, pad_sz;
 	w_dst = map->width;
 	h_dst = map->height;
-	w_tri = (w_dst/5);
+
+	if (opt & S360_OPT_PAD)
+	{
+		pad_sz = PAD_SIZE_RISP/4;
+	}
+	else
+	{
+		pad_sz = 0;
+	}
+	w_tri = ((w_dst-20*pad_sz)/5);
 	h_tri = GET_H_TRI_ISP(w_tri);
 
-	s360_assert_rv(w_dst == w_tri * 5, S360_ERR_INVALID_DIMENSION);
+	s360_assert_rv((w_dst-20*pad_sz) == w_tri * 5, S360_ERR_INVALID_DIMENSION);
 	s360_assert_rv(h_dst == 2 * h_tri, S360_ERR_INVALID_DIMENSION);
-
-	pad_sz = 0;
 
 	init_sph_to_risp1_map(map->layer[0], w_dst, h_dst, w_tri, pad_sz,0);
 	init_sph_to_risp1_map(map->layer[1], w_dst >> 1, h_dst >> 1, w_tri >> 1, pad_sz >> 1,1);
@@ -1180,7 +1204,9 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 	if (cfmt == CONV_FMT_ERP_TO_CMP  || cfmt == CONV_FMT_ERP_TO_ISP  || \
 		cfmt == CONV_FMT_ISP_TO_RISP || cfmt == CONV_FMT_RISP_TO_ISP || \
 		cfmt == CONV_FMT_ERP_TO_TSP  || cfmt == CONV_FMT_ERP_TO_OHP  || \
-		cfmt == CONV_FMT_OHP_TO_ROHP || cfmt == CONV_FMT_ROHP_TO_OHP )
+		cfmt == CONV_FMT_OHP_TO_ROHP || cfmt == CONV_FMT_ROHP_TO_OHP || \
+		cfmt == CONV_FMT_CPP_TO_CMP  || cfmt == CONV_FMT_CPP_TO_ISP  || \
+		cfmt == CONV_FMT_CPP_TO_OHP)
 	{
 		map = (S360_MAP*)s360_malloc(sizeof(S360_MAP));
 		s360_assert_rv(map, NULL);
@@ -1207,35 +1233,43 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 			map->yaw = 0;
 		}
 
-		map->layer[0] = (S360_SPH_COORD*)s360_malloc((map->width)*(map->height)*sizeof(S360_SPH_COORD));
-		map->layer[1] = (S360_SPH_COORD*)s360_malloc((map->width >> 1)*(map->height >> 1)*sizeof(S360_SPH_COORD));
+		map->layer[0] = (S360_SPH_COORD*)s360_malloc((map->width)*\
+			(map->height)*sizeof(S360_SPH_COORD));
+		map->layer[1] = (S360_SPH_COORD*)s360_malloc((map->width >> 1)*\
+			(map->height >> 1)*sizeof(S360_SPH_COORD));
 
 		map_init(map->layer[0], map->width, map->height);
 		map_init(map->layer[1], (map->width >> 1), (map->height >> 1));
 
+		if((cfmt == CONV_FMT_ISP_TO_RISP) || (cfmt == CONV_FMT_RISP_TO_ISP))
+		{
+			opt &= ~(S360_OPT_PAD);
+		}
+
 		switch (cfmt)
 		{
 		case CONV_FMT_ERP_TO_CMP:
+		case CONV_FMT_CPP_TO_CMP:
 			fn_map = map_erp_cpp_to_cmp;
 			break;
 		case CONV_FMT_ERP_TO_ISP:
+		case CONV_FMT_CPP_TO_ISP:
 			fn_map = map_erp_cpp_to_isp;
 			break;
 		case CONV_FMT_ERP_TO_TSP:
 			fn_map = map_erp_to_tsp;
 			break;
 		case CONV_FMT_ISP_TO_RISP:
-			fn_map = map_isp_to_risp;
-			break;
 		case CONV_FMT_RISP_TO_ISP:
-			fn_map = map_risp_to_isp;
+			fn_map = map_risp2;
 			break;
 		case CONV_FMT_ERP_TO_OHP:
 		case CONV_FMT_OHP_TO_ROHP:
 		case CONV_FMT_ROHP_TO_OHP:
+		case CONV_FMT_CPP_TO_OHP:
 			fn_map = map_to_ohp;
 			break;
-		case CONV_FMT_ERP_TO_RISP:
+		case CONV_FMT_ERP_TO_RISP1:
 			fn_map = map_erp_to_risp1;
 			break;
 		}

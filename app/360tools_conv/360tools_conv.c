@@ -88,14 +88,28 @@ static S360_ARGS_OPT argopt[] = \
 		'f',  "convfmt", S360_ARGS_VAL_TYPE_INTEGER | S360_ARGS_VAL_TYPE_MANDATORY,
 		&opt_flag[CMD_FLAG_CONV_CFMT], &cfmt,
 		"converting format\n\t"
-		"1:  ERP  to ISP\n\t2:  ISP  to ERP\n\t"
-		"3:  ERP  to CMP\n\t4:  CMP  to ERP\n\t"
-		"5:  ERP  to OHP\n\t6:  OHP  to ERP\n\t"
-		"7:  ERP  to TSP\n\t8:  TSP  to ERP\n\t"
-		"11: ISP  to RISP\n\t12: RISP to ISP\n\t"
-		"13: CMP  to RCMP\n\t14: RCMP to CMP\n\t"
-		"15: OHP  to ROHP\n\t16: ROHP to OHP\n\t"
-		"21: ERP  to RISP\n\t22: RISP to ERP\n\t"
+		"0:  ERP  to CPP\n\t"
+		"1:  ERP  to ISP\n\t"
+		"2:  ISP  to ERP\n\t"
+		"3:  ERP  to CMP\n\t"
+		"4:  CMP  to ERP\n\t"
+		"5:  ERP  to OHP\n\t"
+		"6:  OHP  to ERP\n\t"
+		"7:  ERP  to TSP\n\t"
+		"8:  TSP  to ERP\n\t"
+		"11: ISP  to RISP\n\t"
+		"12: RISP to ISP\n\t"
+		"13: CMP  to RCMP\n\t"
+		"14: RCMP to CMP\n\t"
+		"15: OHP  to ROHP\n\t"
+		"16: ROHP to OHP\n\t"
+		"21: ERP  to RISP\n\t"
+		"22: RISP to ERP\n\t"
+		"31: CPP  to ERP\n\t"
+		"32: CPP  to ISP\n\t"
+		"33: CPP  to CMP\n\t"
+		"34: CPP  to OHP\n\t"
+		"35: CPP  to TSP\n\t"
 	},
 	{
 		'l', "out_width", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
@@ -225,7 +239,7 @@ int main(int argc, const char * argv[])
 		int w_tri, h_tri;
 		w_tri = ((int)((int)((w_out)/5.5)/4)*4);
 		h_tri = NEAREST_EVEN((w_tri)*SIN_60);
-		w_tri = w_tri*5.5;
+		w_tri = (w_tri*11)>>1;
 		h_tri = h_tri*3;
 		s360_print("Invalid output resolution %dx%d, ISP recommended aspect "
 			" ratio: 88:42\n",	w_out, h_out);
@@ -318,6 +332,9 @@ int main(int argc, const char * argv[])
 
 	switch(cfmt)
 	{
+	case CONV_FMT_ERP_TO_CPP:
+		fn_conv = s360_erp_to_cpp;
+		break;
 	case CONV_FMT_ERP_TO_ISP:
 		fn_conv = s360_erp_to_isp;
 		break;
@@ -360,11 +377,23 @@ int main(int argc, const char * argv[])
 	case CONV_FMT_ROHP_TO_OHP:
 		fn_conv = s360_rohp_to_ohp;
 		break;
-	case CONV_FMT_ERP_TO_RISP:
+	case CONV_FMT_ERP_TO_RISP1:
 		fn_conv = s360_erp_to_risp1;
 		break;
 	case CONV_FMT_RISP1_TO_ERP:
 		fn_conv = s360_risp1_to_erp;
+		break;
+	case CONV_FMT_CPP_TO_ERP:
+		fn_conv = s360_cpp_to_erp;
+		break;
+	case CONV_FMT_CPP_TO_ISP:
+		fn_conv = s360_cpp_to_isp;
+		break;
+	case CONV_FMT_CPP_TO_CMP:
+		fn_conv = s360_cpp_to_cmp;
+		break;
+	case CONV_FMT_CPP_TO_OHP:
+		fn_conv = s360_cpp_to_ohp;
 		break;
 	default:
 		s360_print("Unsupprted converting format\n");

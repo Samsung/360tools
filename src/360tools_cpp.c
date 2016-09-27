@@ -31,35 +31,75 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
+#include "360tools.h"
+#include "360tools_cpp.h"
 
-#ifndef __360TOOLS_OHP_H__2346758963478562398457629384562938576234__
-#define __360TOOLS_OHP_H__2346758963478562398457629384562938576234__
-
-
-#ifdef __cplusplus
-extern "C"
+static void cpp_bypass_plane(int w_src, int h_src, int s_src, void * src,
+    void * dst, int s_dst, int cs, int opt, int pad_sz)
 {
-#endif
+	int       i, j, size;
+	int       w_dst, h_dst;
+	uint8   * map;
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+	w_dst = w_src;
+	h_dst = h_src;
+	size  = ((cs == S360_COLORSPACE_YUV420) ? sizeof(uint8) : sizeof(uint16));
+	
+	map = (uint8 *)s360_malloc(sizeof(uint8) * w_dst * h_dst);
+	cpp_map_plane(w_dst, h_dst, s_dst, map);
 
-/* to OHP */
-int s360_erp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_rohp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_cpp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+	for(j=0; j<h_src; j++)
+	{
+		for(i=0; i<s_dst; i++)
+		{
+			if (map[i+j*w_src] != 0)
+			s360_mcpy(dst, src, size);
 
-/* from ohp */
-int s360_ohp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_ohp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
-int s360_ohp_to_rohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+			if(cs == S360_COLORSPACE_YUV420)
+			{
+				dst = (void *)((uint8 *)dst + 1);
+				src = (void *)((uint8 *)src + 1);
+			}
+			if(cs == S360_COLORSPACE_YUV420_10)
+			{
+				dst = (void *)((uint16 *)dst + 1);
+				src = (void *)((uint16 *)src + 1);
+			}
+		}
+	}
 
-#ifdef __cplusplus
+	s360_mfree(map);
 }
-#endif
 
+int s360_cpp_bypass(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int i, w_src, w_dst, h_src, pad_sz;
 
-#endif /* __360TOOLS_OHP_H__2346758963478562398457629384562938576234__ */
+	s360_img_reset(img_dst);
 
-
+	if((img_src->colorspace == S360_COLORSPACE_YUV420) || ((img_src->colorspace == S360_COLORSPACE_YUV420_10)))
+	{
+		for(i=0; i<3; i++)
+		{
+			if(i == 0)
+			{
+				w_src = w_dst = img_src->width;
+				h_src = img_src->height;
+				pad_sz = (opt & S360_OPT_PAD) ? PAD_SIZE : 0;
+			}
+			else
+			{
+				w_src = w_dst = (img_src->width + 1)>> 1;
+				h_src = (img_src->height + 1) >> 1;
+				pad_sz = (opt & S360_OPT_PAD) ? PAD_SIZE >> 1 : 0;
+			}
+			cpp_bypass_plane(w_src, h_src, img_src->stride[i], img_src->buffer[i], img_dst->buffer[i], img_dst->stride[i], img_src->colorspace, opt, pad_sz);
+		}
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+	return S360_OK;
+}

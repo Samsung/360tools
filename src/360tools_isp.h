@@ -46,6 +46,7 @@ extern "C"
 
 /* to ISP */
 int s360_erp_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_cpp_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_risp2_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_risp_to_isp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_erp_to_risp1(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);

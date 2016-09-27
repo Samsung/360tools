@@ -410,16 +410,135 @@ int s360_erp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 	return S360_OK;
 }
 
+static int cpp_to_ohp_plane(int w_src, int h_src, int w_dst, int h_dst, \
+	void * src, void * img_dst, int s_src, int s_dst, int w_tri, int opt, int cs, S360_SPH_COORD * map0)
+{
+	S360_SPH_COORD * map;
+	resample_fn fn_resample;
+	uint8     * cpp_map; 
+	void      * dst;
+	double      lon, lat, la_src, lo_src;
+	double      x, y;
+	int         i, j;
+
+	fn_resample = resample_fp(cs);
+
+	cpp_map = (uint8 *)s360_malloc(sizeof(uint8) * w_src * h_src);
+	cpp_map_plane(w_src, h_src, s_src, cpp_map);
+
+	if(cs == S360_COLORSPACE_YUV420)
+	{
+		pad_cpp_plane((uint8 *)(src), w_src, h_src, s_src, cpp_map);
+	}
+	else if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		pad_cpp_plane_10b((uint16 *)(src), w_src, h_src, s_src, cpp_map);
+		s_dst <<= 1;
+	}
+
+	map = map0;
+	dst = img_dst;
+	for(j=0; j<h_dst; j++)
+	{
+		for(i=0; i<w_dst; i++)
+		{
+			lon = map[i].lng;
+			lat = map[i].lat;
+
+			if(lon != -1)
+			{
+				la_src = DEG2RAD(lat) - M_PI_2;
+				lo_src = DEG2RAD(lon) - PI;
+
+				x = (lo_src * (2*cos(2*la_src/3) - 1) + PI) * w_src / (2* PI); 
+				y = (PI * sin((la_src)/3) + M_PI_2) * h_src / PI;
+
+				fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			}
+		}
+		map += w_dst;
+		dst = (void *)((uint8 *)dst + s_dst);
+	}
+	map -= w_dst * h_dst;
+	dst = (void *)((uint8 *)dst - s_dst * h_dst);
+	/* padding for rendering */
+	if(opt & S360_OPT_PAD)
+	{
+		if(cs == S360_COLORSPACE_YUV420)
+		{
+			pad_ohp_plane(dst, w_dst, h_dst, s_dst, map);
+		}
+		else if(cs == S360_COLORSPACE_YUV420_10)
+		{
+			pad_ohp_plane_10b(dst, w_dst, h_dst, (s_dst>>1), map);
+		}
+	}
+
+	s360_mfree(cpp_map);
+
+	return 1;
+}
+
+int s360_cpp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst;
+	int w_tri, h_tri;
+	int ret;
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+	
+	w_dst = img_dst->width;
+	h_dst = img_dst->height;
+
+	w_tri = GET_W_TRI_OHP(w_dst);
+	h_tri = GET_H_TRI_OHP(w_tri);
+
+	s360_assert_rv(w_dst == w_tri * 4, S360_ERR_INVALID_DIMENSION);
+	s360_assert_rv(h_dst == 2 * h_tri, S360_ERR_INVALID_DIMENSION);
+
+	s360_assert_rv(h_dst <= img_dst->height, S360_ERR_INVALID_ARGUMENT);
+	
+	img_dst->width = w_dst;
+	img_dst->height = h_dst;
+
+	ret = s360_img_realloc(img_dst, w_dst, h_dst, opt);
+	s360_assert_rv(ret == S360_OK, ret);
+
+	s360_img_reset(img_dst);
+
+	if(IS_VALID_CS(img_src->colorspace))
+	{
+		cpp_to_ohp_plane(w_src, h_src, w_dst, h_dst, img_src->buffer[0], \
+			img_dst->buffer[0], img_src->stride[0], img_dst->stride[0], w_tri, opt, img_src->colorspace, map->layer[0]);
+
+		w_tri >>= 1;
+		w_src >>= 1;
+		h_src >>= 1;
+		w_dst >>= 1;
+		h_dst >>= 1;
+		cpp_to_ohp_plane(w_src, h_src, w_dst, h_dst, img_src->buffer[1], \
+			img_dst->buffer[1], img_src->stride[1], img_dst->stride[1], w_tri, opt, img_src->colorspace, map->layer[1]);
+		cpp_to_ohp_plane(w_src, h_src, w_dst, h_dst, img_src->buffer[2], \
+			img_dst->buffer[2], img_src->stride[2], img_dst->stride[2], w_tri, opt, img_src->colorspace, map->layer[1]);
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+	return S360_OK;
+}
+
 double tbl_center_xyz_ohp[8][3] =
 {
-	{   0.333333,	0.333333,   0.333333 },
-	{   -0.333333,   0.333333,   0.333333 },
-	{   -0.333333,  - 0.333333,   0.333333 },
-	{   0.333333,   -0.333333,   0.333333 },
-	{   0.333333,   0.333333,   -0.333333 },
-	{   -0.333333,   0.333333,   -0.333333 },
-	{   -0.333333,   -0.333333,   -0.333333 },
-	{   0.333333,   -0.333333,   -0.333333 }
+	{   0.333333,   0.333333,   0.333333 },
+	{  -0.333333,   0.333333,   0.333333 },
+	{  -0.333333, - 0.333333,   0.333333 },
+	{   0.333333,  -0.333333,   0.333333 },
+	{   0.333333,   0.333333,  -0.333333 },
+	{  -0.333333,   0.333333,  -0.333333 },
+	{  -0.333333,  -0.333333,  -0.333333 },
+	{   0.333333,  -0.333333,  -0.333333 }
 };
 
 static int get_tri_idx(double x, double y, double z, double center[][3])
@@ -448,7 +567,7 @@ static int get_tri_idx(double x, double y, double z, double center[][3])
 static int ohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int cs)
 {
-    void  (*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
+	void  (*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
 							double x, double y, void * dst, int x_dst);
 	double  n1[3], n2[3], normal[3], mid[3], xyz[3], t_vec[3];
 	double  lng, lat, x, y, u;
@@ -459,7 +578,7 @@ static int ohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 	int     v1, v2, v3;
 	int     i, j;
 
-    if(cs == S360_COLORSPACE_YUV420)
+	if(cs == S360_COLORSPACE_YUV420)
 	{
 		fn_resample = resample_2d;
 	}
@@ -1003,17 +1122,17 @@ static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
     void  (*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
 							double x, double y, void * dst, int x_dst);
 
-	double  n1[3], n2[3], normal[3], mid[3], xyz[3], t_vec[3];
-	double  lng, lat, x, y, u;
-	double  h_tri_3d, w_tri_3d;
-	double  dist_23, dist_cmp1, dist_cmp2, d_ver, d_hor;
-	int     tri, w_tri, h_tri, vertex_x, vertex_y;
-	int     y1, y2;
-	int     v1, v2, v3;
-	int     i, j;
-	int		* map, * map0;
+	double   n1[3], n2[3], normal[3], mid[3], xyz[3], t_vec[3];
+	double   lng, lat, x, y, u;
+	double   h_tri_3d, w_tri_3d;
+	double   dist_23, dist_cmp1, dist_cmp2, d_ver, d_hor;
+	int      tri, w_tri, h_tri, vertex_x, vertex_y;
+	int      y1, y2;
+	int      v1, v2, v3;
+	int      i, j;
+	uint8  * map, * map0;
 
-    if(cs == S360_COLORSPACE_YUV420)
+	if(cs == S360_COLORSPACE_YUV420)
 	{
 		fn_resample = resample_2d;
 	}
@@ -1023,7 +1142,10 @@ static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 		s_dst <<= 1;
 	}
 
-    map = (int *)s360_malloc(sizeof(int) * h_dst * w_dst);
+	map = (uint8 *)s360_malloc(sizeof(uint8) * h_dst * w_dst);
+	cpp_map_plane(w_dst, h_dst, s_dst, map);
+	map0 = map;
+
 	w_tri = (int)(w_src / 4);
 	h_tri = (int)(h_src / 2);
 	y1    = h_tri;
@@ -1038,28 +1160,6 @@ static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 
 	v3d_sub(tbl_tri_xyz[0], mid, t_vec);
 	h_tri_3d = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
-
-	map0 = map;
-	for(j=0; j<h_dst ;j++)
-	{
-		for(i=0; i<w_dst; i++)
-		{
-			*(map0+i) = 0;
-			x = ((double)i / (w_dst-0)) * M_2PI - PI;
-			y = ((double)j / (h_dst-0)) * PI - (M_PI_2);
-
-			lat = 3 * asin(y / PI);
-			lng = x / (2 * cos(2 * lat / 3) - 1);
-
-			x = (lng + PI) / 2 / PI * (w_dst - 0);
-			y = (lat + (M_PI_2)) / PI * (h_dst - 0);
-
-			if(x>=0 && x <w_dst && y>=0 && y<h_dst)
-				*(map0+i) = 1;
-		}
-		map0 += w_dst;
-	}
-	map0 = map;
 
 	for(j=0; j<h_dst; j++)
 	{

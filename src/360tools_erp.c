@@ -134,6 +134,74 @@ int s360_erp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 	return S360_OK;
 }
 
+static void cpp_to_erp_plane(int w_src, int h_src, int s_src, void * src, void * dst, int s_dst, int cs)
+{
+	resample_fn fn_resample;
+	uint8 * map;
+	int i, j;
+	double phi;
+	double x, y, h_dst, w_dst;
+	
+	fn_resample = resample_fp(cs);
+	h_dst = h_src;
+	w_dst = w_src;
+
+	map = (uint8 *)s360_malloc(sizeof(uint8) * w_src * h_src);
+	cpp_map_plane(w_src, h_src, s_src, map);
+
+	if(cs == S360_COLORSPACE_YUV420)
+	{
+		pad_cpp_plane((uint8 *)(src), w_src, h_src, s_src, map);
+	}
+	else if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		pad_cpp_plane_10b((uint16 *)(src), w_src, h_src, s_src, map);
+		s_dst <<= 1;
+	}
+
+	for(j=0; j<h_src; j++)
+	{
+		for(i=0; i<w_src; i++)
+		{
+			y    = h_dst * (.5 + sin(PI / 3 * ((double)j/h_src -.5f)));
+			phi  = 3 * asin(y/h_src-.5);
+			x    = (w_dst/2) * (1 + ((4 * cos(2* phi/3)) - 2) * ((double)i/w_src -.5));
+
+			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+		}
+		dst = (void *)((uint8 *)dst + s_dst);
+	}
+	s360_mfree(map);
+}
+
+int s360_cpp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int i, w_src, w_dst, h_src;
+
+	if(IS_VALID_CS(img_src->colorspace))
+	{
+		for(i=0; i<3; i++)
+		{
+			if(i == 0)
+			{
+				w_src = w_dst = img_src->width;
+				h_src = img_src->height;
+			}
+			else
+			{
+				w_src = w_dst = img_src->width >> 1;
+				h_src = img_src->height >> 1;
+			}
+			cpp_to_erp_plane(w_src, h_src, img_src->stride[i], img_src->buffer[i], img_dst->buffer[i], img_dst->stride[i], img_src->colorspace);
+		}
+		return S360_OK;
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+}
+
 static void pad_erp_plane(uint8 * buf, int w, int h, int s, int pad_sz)
 {
 	uint8     * src;

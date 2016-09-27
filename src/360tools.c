@@ -36,7 +36,7 @@
 #include "360tools_def.h"
 #include "360tools_img.h"
 
-#if USE_LANCZOS && LANCZOS_FAST_MODE
+#if LANCZOS_FAST_MODE
 static double tbl_lanczos_coef[LANCZOS_FAST_MAX_SIZE * LANCZOS_FAST_SCALE];
 #endif
 
@@ -59,12 +59,12 @@ double v3d_dot_product(double v1[3], double v2[3])
 
 void cart_to_sph(double x, double y, double z, S360_SPH_COORD  * coord)
 {
-	coord->lat = RAD2DEG(acos(z));
+	coord->lat = (float)RAD2DEG(acos(z));
 	if (coord->lat > 180) coord->lat = 180;
 
 	if (x < 0)
 	{
-		coord->lng = 180 - RAD2DEG(-atan(y / x));
+		coord->lng = 180.0f - (float)RAD2DEG(-atan(y / x));
 	}
 	else if (x == 0)
 	{
@@ -83,7 +83,7 @@ void cart_to_sph(double x, double y, double z, S360_SPH_COORD  * coord)
 	}
 	else /* x>0 */
 	{
-		coord->lng = RAD2DEG(atan(y / x));
+		coord->lng = (float)RAD2DEG(atan(y / x));
 		if (coord->lng < 0) coord->lng += 360;
 	}
 
@@ -281,7 +281,7 @@ static double lanczos_coef(double x)
 
 int s360_init(void)
 {
-#if USE_LANCZOS && LANCZOS_FAST_MODE
+#if LANCZOS_FAST_MODE
 	int i;
 	for(i=0; i<LANCZOS_FAST_MAX_SIZE*LANCZOS_FAST_SCALE; i++)
 	{
@@ -297,7 +297,6 @@ void s360_deinit(void)
     /*...*/
 }
 
-#if USE_LANCZOS
 /* lanczos */
 void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 	double x, double y, void * dst, int x_dst)
@@ -318,7 +317,7 @@ void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 			idx_y = (int)y + j + 1;
 			if(idx_y >= 0 && idx_x >= w_start && idx_x < w_end && idx_y < h_src)
 			{
-				coef = lanczos_coef(x - idx_x) * lanczos_coef(y - idx_y);
+				coef = (float)(lanczos_coef(x - idx_x) * lanczos_coef(y - idx_y));
 				res += src_8[idx_x + idx_y * s_src] * coef;
 				sum += coef;
 			}
@@ -363,17 +362,20 @@ void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
 		dst_16[x_dst] = S360_CLIP_S32_TO_U10(i);
 	}
 }
-#else
+
 /* bi-linear */
-void resample_2d(void * src, int w_src, int h_src, int s_src, \
-	double x, double y, void * dst)
+void resample_bl_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
+	double x, double y, void * dst, int x_dst)
 {
 	int val;
+	int w_src;
 	uint8 * src_8;
 	uint8 * dst_8;
 
 	src_8 = (uint8 *)src;
 	dst_8 = (uint8 *)dst;
+
+	w_src = w_end - w_start;
 
 	if(x > -1 && y > -1 && x < w_src && y < h_src)
 	{
@@ -398,20 +400,23 @@ void resample_2d(void * src, int w_src, int h_src, int s_src, \
 		s2 = src_8[off2];
 		s3 = src_8[off3];
 		val = (int)(w0 * s0 + w1 * s1 + w2 * s2 + w3 * s3 + 0.5);
-		*dst_8++ = S360_CLIP_S32_TO_U8(val);
+		dst_8[x_dst] = S360_CLIP_S32_TO_U8(val);
 	}
 }
 
 /* bi-linear */
-void resample_2d_10b(void * src, int w_src, int h_src, int s_src, \
-	double x, double y, void * dst)
+void resample_bl_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
+	double x, double y, void * dst, int x_dst)
 {
 	int val;
+	int w_src;
 	uint16 * src_16;
 	uint16 * dst_16;
 
 	src_16 = (uint16 *)src;
 	dst_16 = (uint16 *)dst;
+
+	w_src = w_end - w_start;
 
 	if(x > -1 && y > -1 && x < w_src && y < h_src)
 	{
@@ -436,11 +441,11 @@ void resample_2d_10b(void * src, int w_src, int h_src, int s_src, \
 		s2 = src_16[off2];
 		s3 = src_16[off3];
 		val = (int)(w0 * s0 + w1 * s1 + w2 * s2 + w3 * s3 + 0.5);
-		*dst_16++ = S360_CLIP_S32_TO_U8(val);
+		dst_16[x_dst] = S360_CLIP_S32_TO_U10(val);
 	}
 }
 
-#endif
+/* TSP related */
 
 void resample_tsp_2d(void * src, int w_start, int w_end, int w_src, int h_src, int s_src, \
 	void * dst, int w_dst, int i, int j, S360_SPH_COORD  * map)
@@ -449,39 +454,30 @@ void resample_tsp_2d(void * src, int w_start, int w_end, int w_src, int h_src, i
 	uint8 * src_8;
 	uint8 * dst_8;
 	int sub = TSPAA_S;
-	int num = 0;
-	int subdiv2 = (sub>>1);
-	uint32 map_idx = 0, sum = 0, a = 0;
+	int num = sub * sub;
+	unsigned long int map_idx = 0, sum = 0, a;
 
 	src_8 = (uint8 *)src;
 	dst_8 = (uint8 *)dst;
 
-	for (n = -subdiv2; n <= subdiv2; n++)
+	for (n = 0; n<sub; n++)
 	{
-		for (m = -subdiv2; m <= subdiv2; m++)
+		for (m = 0; m<sub; m++)
 		{
-			int idx_x = i * sub + m;
-			int idx_y = j * sub + n;
-			if (idx_x < 0) idx_x = 0;
-			if (idx_y < 0) idx_y = 0;
-			map_idx = idx_y * w_dst * sub + idx_x;
+			map_idx = (j * sub + n) * w_dst * sub + i * sub + m;
 			if (map[map_idx].lng != -1)
 			{
-				x = (int)(map[map_idx].lng * w_src / 360.0 + 0.5);
-				y = (int)(map[map_idx].lat * h_src / 180.0 + 0.5);
+				x = (int)(map[map_idx].lng * (w_src - 1) / 360.0 + 0.5);
+				y = (int)(map[map_idx].lat * (h_src - 1) / 180.0 + 0.5);
 
 				if(y >= 0 && x >= w_start && x < w_end && y < h_src)
 				{
 					sum += src_8[x + y * s_src];
-					num++;
 				}
 			}
 		}
 	}
-	if (num > 0)
-	{
-		a = (sum + (num>>1))/num;
-	}
+	a = (sum + (num>>1))/num;
 	dst_8[i] = S360_CLIP_S32_TO_U8((int)a);
 }
 
@@ -492,39 +488,30 @@ void resample_tsp_2d_10b(void * src, int w_start, int w_end, int w_src, int h_sr
 	uint16 * src_16;
 	uint16 * dst_16;
 	int sub = TSPAA_S;
-	int num = 0;
-	int subdiv2 = (sub>>1);
-	uint32 map_idx = 0, sum = 0, a = 0;
+	int num = sub * sub;
+	unsigned long int map_idx = 0, sum = 0, a;
 
 	src_16 = (uint16 *)src;
 	dst_16 = (uint16 *)dst;
 
-	for (n = -subdiv2; n <= subdiv2; n++)
+	for (n = 0; n<sub; n++)
 	{
-		for (m = -subdiv2; m <= subdiv2; m++)
+		for (m = 0; m<sub; m++)
 		{
-			int idx_x = i * sub + m;
-			int idx_y = j * sub + n;
-			if (idx_x < 0) idx_x = 0;
-			if (idx_y < 0) idx_y = 0;
-			map_idx = idx_y * w_dst * sub + idx_x;
+			map_idx = (j * sub + n) * w_dst * sub + i * sub + m;
 			if (map[map_idx].lng != -1)
 			{
-				x = (int)(map[map_idx].lng * w_src / 360.0 + 0.5);
-				y = (int)(map[map_idx].lat * h_src / 180.0 + 0.5);
+				x = (int)(map[map_idx].lng * (w_src - 1) / 360.0 + 0.5);
+				y = (int)(map[map_idx].lat * (h_src - 1) / 180.0 + 0.5);
 
 				if(y >= 0 && x >= w_start && x < w_end && y < h_src)
 				{
 					sum += src_16[x + y * s_src];
-					num++;
 				}
 			}
 		}
 	}
-	if (num > 0)
-	{
-		a = (sum + (num>>1))/num;
-	}
+	a = (sum + (num>>1))/num;
 	dst_16[i] = S360_CLIP_S32_TO_U10((int)a);
 }
 

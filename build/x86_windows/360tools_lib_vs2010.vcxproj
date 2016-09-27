@@ -76,6 +76,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\360tools.c" />
     <ClCompile Include="..\..\src\360tools_cmp.c" />
+    <ClCompile Include="..\..\src\360tools_cpp.c" />
     <ClCompile Include="..\..\src\360tools_erp.c" />
     <ClCompile Include="..\..\src\360tools_img.c" />
     <ClCompile Include="..\..\src\360tools_isp.c" />
@@ -88,6 +89,7 @@
     <ClInclude Include="..\..\src\360tools.h" />
     <ClInclude Include="..\..\src\360tools_args.h" />
     <ClInclude Include="..\..\src\360tools_cmp.h" />
+    <ClInclude Include="..\..\src\360tools_cpp.h" />
     <ClInclude Include="..\..\src\360tools_def.h" />
     <ClInclude Include="..\..\src\360tools_erp.h" />
     <ClInclude Include="..\..\src\360tools_img.h" />

@@ -429,6 +429,104 @@ int s360_erp_to_cmp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 	return S360_OK;
 }
 
+static int cpp_to_cmp_plane(void * src, int w_src, int h_src, int s_src, \
+	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, \
+    int pad_size, int cs, S360_SPH_COORD  * map)
+{
+	resample_fn fn_resample;
+	uint8 *     cpp_map;
+	double      x, y;
+	double      lon, lat, la_src, lo_src;
+	int         i, j;
+
+	fn_resample = resample_fp(cs);
+	cpp_map = (uint8 *)s360_malloc(sizeof(uint8)* w_src * h_src);
+	cpp_map_plane(w_src, h_src, w_src, cpp_map);
+
+
+	if (cs == S360_COLORSPACE_YUV420)
+	{
+		pad_cpp_plane((uint8 *)(src), w_src, h_src, s_src, cpp_map);
+	}
+	else if (cs == S360_COLORSPACE_YUV420_10)
+	{
+		pad_cpp_plane_10b((uint16 *)(src), w_src, h_src, s_src, cpp_map);
+		s_dst <<= 1;
+	}
+
+	for (j = 0; j<h_dst; j++)
+	{
+		for (i = 0; i<w_dst; i++)
+		{
+			lon = map[i].lng;
+			lat = map[i].lat;
+
+			if (lon != -1)
+			{
+				la_src = DEG2RAD(lat) - M_PI_2;
+				lo_src = DEG2RAD(lon) - PI;
+
+				x = (lo_src * (2 * cos(2 * la_src / 3) - 1) + PI) * w_src / (2 * PI);
+				y = (PI * sin((la_src) / 3) + M_PI_2) * h_src / PI;
+
+				fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			}
+		}
+		map += w_dst;
+		dst = (void *)((uint8 *)dst + s_dst);
+	}
+	map -= w_dst * h_dst;
+	dst = (void *)((uint8 *)dst - s_dst * h_dst);
+
+	if (opt & S360_OPT_PAD)
+	{
+		if (cs == S360_COLORSPACE_YUV420)
+		{
+			pad_cmp_plane(dst, w_dst, h_dst, s_dst, w_squ, pad_size);
+		}
+		else if (cs == S360_COLORSPACE_YUV420_10)
+		{
+			pad_cmp_plane_10b(dst, w_dst, h_dst, (s_dst >> 1), w_squ, pad_size);
+		}
+
+	}
+
+	s360_mfree(cpp_map);
+	return S360_OK;
+}
+
+int s360_cpp_to_cmp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst;
+	int w_squ;
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+
+	w_dst = img_dst->width;
+	h_dst = img_dst->height;
+	w_squ = NEAREST_EVEN(w_dst / 4.0);
+
+	s360_img_reset(img_dst);
+
+	if (IS_VALID_CS(img_src->colorspace))
+	{
+		cpp_to_cmp_plane(img_src->buffer[0], w_src, h_src, img_src->stride[0], w_dst, h_dst, img_dst->stride[0], img_dst->buffer[0], w_squ, opt, PAD_SIZE, img_src->colorspace, map->layer[0]);
+		w_squ >>= 1;
+		w_src >>= 1;
+		h_src >>= 1;
+		w_dst >>= 1;
+		h_dst >>= 1;
+		cpp_to_cmp_plane(img_src->buffer[1], w_src, h_src, img_src->stride[1], w_dst, h_dst, img_dst->stride[1], img_dst->buffer[1], w_squ, opt, PAD_SIZE >> 1, img_src->colorspace, map->layer[1]);
+		cpp_to_cmp_plane(img_src->buffer[2], w_src, h_src, img_src->stride[2], w_dst, h_dst, img_dst->stride[2], img_dst->buffer[2], w_squ, opt, PAD_SIZE >> 1, img_src->colorspace, map->layer[1]);
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+	return S360_OK;
+}
+
 /*-------------------------------   FROM CMP    -----------------------------*/
 static int get_squ_idx(double x, double y, double z, const double center[6][3])
 {
@@ -575,13 +673,12 @@ static int cmp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
 		double x, double y, void * dst, int x_dst);
 
-	double	vec_12[3], vec_13[3];
-	double  lng, lat, x, y;
-	double	d12, d13;
-	int     v_1_3d, v_2_3d, v_3_3d;
-	int     i, j;
-	int		* map, *map0;
-
+	double   vec_12[3], vec_13[3];
+	double   lng, lat, x, y;
+	double   d12, d13;
+	int      v_1_3d, v_2_3d, v_3_3d;
+	int      i, j;
+	uint8  * map, *map0;
 
 	if (cs == S360_COLORSPACE_YUV420)
 	{
@@ -593,7 +690,10 @@ static int cmp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 		s_dst <<= 1;
 	}
 
-	map = (int *)s360_malloc(sizeof(int)* h_dst * w_dst);
+	map = (uint8 *)s360_malloc(sizeof(uint8) * h_dst * w_dst);
+	cpp_map_plane(w_dst, h_dst, s_dst, map);
+	map0 = map;
+
 	v_1_3d = tbl_vidx_erp2cmp[0][0];
 	v_2_3d = tbl_vidx_erp2cmp[0][1];
 	v_3_3d = tbl_vidx_erp2cmp[0][2];
@@ -602,28 +702,6 @@ static int cmp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 	d12 = GET_DIST3D(vec_12[0], vec_12[1], vec_12[2]);
 	v3d_sub(tbl_squ_xyz[v_3_3d], tbl_squ_xyz[v_1_3d], vec_13);
 	d13 = GET_DIST3D(vec_13[0], vec_13[1], vec_13[2]);
-
-	map0 = map;
-	for (j = 0; j<h_dst; j++)
-	{
-		for (i = 0; i<w_dst; i++)
-		{
-			*(map0 + i) = 0;
-			x = ((double)i / (w_dst - 0)) * (M_2PI)-PI;
-			y = ((double)j / (h_dst - 0)) * PI - (M_PI_2);
-
-			lat = 3 * asin(y / PI);
-			lng = x / (2 * cos(2 * lat / 3) - 1);
-
-			x = (lng + PI) / 2 / PI * (w_dst - 0);
-			y = (lat + (M_PI_2)) / PI * (h_dst - 0);
-
-			if (x >= 0 && x <w_dst && y >= 0 && y<h_dst)
-				*(map0 + i) = 1;
-		}
-		map0 += w_dst;
-	}
-	map0 = map;
 
 	for (j = 0; j<h_dst; j++)
 	{

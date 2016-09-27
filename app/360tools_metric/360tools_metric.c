@@ -129,13 +129,13 @@ static S360_ARGS_OPT argopt[] = \
 		'f',  "original_proj_format", S360_ARGS_VAL_TYPE_INTEGER,
 		&opt_flag[CMD_FLAG_METRIC_PFMT_ORG], &pfmt_org,
 		"original projection format\n\t "
-		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t"
+		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t 4: OHP\n\t 5: TSP\n\t 6: CPP"
 	},
 	{
 		't',  "reconstructed_proj_format", S360_ARGS_VAL_TYPE_INTEGER,
 		&opt_flag[CMD_FLAG_METRIC_PFMT_REC], &pfmt_rec,
 		"reconstructed projection format\n\t "
-		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t"
+		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t 4: OHP\n\t 5: TSP\n\t 6: CPP"
 	},
 	{
 		'x',  "color_space_orig", S360_ARGS_VAL_TYPE_INTEGER,
@@ -817,6 +817,14 @@ int main(int argc, const char * argv[])
         case PROJ_FMT_OHP:
             fn_conv_org = s360_ohp_to_cpp;
             break;
+		case PROJ_FMT_TSP:
+			fn_conv_org = s360_tsp_to_cpp;
+			break;
+		case PROJ_FMT_CPP:
+			fn_conv_org = s360_cpp_bypass;
+			w_in = w_org;
+			h_in = h_org;
+		break;
         default:
             s360_print("Unsupprted input format\n");
 			print_usage();
@@ -839,7 +847,15 @@ int main(int argc, const char * argv[])
         case PROJ_FMT_OHP:
             fn_conv_rec = s360_ohp_to_cpp;
             break;
-        default:
+		case PROJ_FMT_TSP:
+			fn_conv_rec = s360_tsp_to_cpp;
+			break;
+		case PROJ_FMT_CPP:
+			fn_conv_rec = s360_cpp_bypass;
+			w_in = w_rec;
+			h_in = h_rec;
+			break;
+		default:
             s360_print("Unsupprted input format\n");
 			print_usage();
 			return -1;

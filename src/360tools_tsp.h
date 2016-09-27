@@ -48,6 +48,7 @@ int s360_erp_to_tsp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 
 /* from TSP */
 int s360_tsp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_tsp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 
 #ifdef __cplusplus
 }
