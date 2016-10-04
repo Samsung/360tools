@@ -38,17 +38,18 @@
 static void erp_to_cpp_plane(int w_src, int h_src, int s_src, void * src,
     void * dst, int s_dst, int cs, int opt, int pad_sz)
 {
-	void    (* fn_resample)(void * src, int w_start, int w_end, int h_src,
-        int s_src, double x, double y, void * dst, int x_dst);
+	void    (* fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 	double lambda, phi, x, y;
 	int offset;
 	int i, j, w_dst, h_dst;
 	void * dst0;
 	uint8 * map;
-	int	w_start, w_end;
+	int	w_start, w_end, h_start;
 
 	w_start = opt ? -pad_sz : 0;
 	w_end = opt ? w_src + pad_sz : w_src;
+	h_start = 0;
 	w_dst = w_src;
 	h_dst = h_src;
 
@@ -80,7 +81,7 @@ static void erp_to_cpp_plane(int w_src, int h_src, int s_src, void * src,
 
 			if(map[i+j*w_src] != 0)
 			{
-				fn_resample(src, w_start, w_end, h_src, s_src, x, y, dst, i);
+				fn_resample(src, w_start, w_end, h_start, h_src, s_src, x, y, dst, i);
 			}
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
@@ -167,7 +168,7 @@ static void cpp_to_erp_plane(int w_src, int h_src, int s_src, void * src, void *
 			phi  = 3 * asin(y/h_src-.5);
 			x    = (w_dst/2) * (1 + ((4 * cos(2* phi/3)) - 2) * ((double)i/w_src -.5));
 
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
 	}
@@ -234,7 +235,7 @@ static void pad_erp_plane_10b(uint16 * buf, int w, int h, int s, int pad_sz)
 {
 	uint16     * src;
 	uint16     * dst;
-	int         i;
+	int          i;
 
 	// Pad Left
 	src = buf + w - pad_sz;

@@ -130,12 +130,14 @@ static S360_ARGS_OPT argopt[] = \
 		&opt_flag[CMD_FLAG_METRIC_PFMT_ORG], &pfmt_org,
 		"original projection format\n\t "
 		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t 4: OHP\n\t 5: TSP\n\t 6: CPP"
+			"\n\t 7: SSP"
 	},
 	{
 		't',  "reconstructed_proj_format", S360_ARGS_VAL_TYPE_INTEGER,
 		&opt_flag[CMD_FLAG_METRIC_PFMT_REC], &pfmt_rec,
 		"reconstructed projection format\n\t "
 		"1: ERP\n\t 2: ISP\n\t 3: CMP\n\t 4: OHP\n\t 5: TSP\n\t 6: CPP"
+			"\n\t 7: SSP"
 	},
 	{
 		'x',  "color_space_orig", S360_ARGS_VAL_TYPE_INTEGER,
@@ -810,62 +812,68 @@ int main(int argc, const char * argv[])
 		fn_qmetric = ws_psnr;
 		break;
 	case OPT_METRIC_CPPPSNR: /* Craster Parabolic Projection PSNR (CPP-PSNR) */
-        if(!opt_flag[CMD_FLAG_METRIC_PFMT_ORG])
+		if(!opt_flag[CMD_FLAG_METRIC_PFMT_ORG])
 		{
 			s360_print("projection type should be set for CPP-PSNR\n");
 			print_usage(); ret = -1; goto ERR;
 		}
-        if(!pfmt_rec) pfmt_rec = pfmt_org;
+		if(!pfmt_rec) pfmt_rec = pfmt_org;
 		w_in = WIDTH_CPP;
 		h_in = HEIGHT_CPP;
-        switch(pfmt_org)
-        {
-        case PROJ_FMT_ERP:
-            fn_conv_org = s360_erp_to_cpp;
+		switch(pfmt_org)
+		{
+		case PROJ_FMT_ERP:
+			fn_conv_org = s360_erp_to_cpp;
 			w_in = w_org;
-            h_in = h_org;
-            break;
-        case PROJ_FMT_ISP:
-            fn_conv_org = s360_isp_to_cpp;
-            break;
-        case PROJ_FMT_CMP:
-            fn_conv_org = s360_cmp_to_cpp;
-            break;
-        case PROJ_FMT_OHP:
-            fn_conv_org = s360_ohp_to_cpp;
-            break;
+			h_in = h_org;
+			break;
+		case PROJ_FMT_ISP:
+			fn_conv_org = s360_isp_to_cpp;
+			break;
+		case PROJ_FMT_CMP:
+			fn_conv_org = s360_cmp_to_cpp;
+			break;
+		case PROJ_FMT_OHP:
+			fn_conv_org = s360_ohp_to_cpp;
+			break;
 		case PROJ_FMT_TSP:
 			fn_conv_org = s360_tsp_to_cpp;
+			break;
+		case PROJ_FMT_SSP:
+			fn_conv_org = o360_ssp_to_cpp;
 			break;
 		case PROJ_FMT_CPP:
 			fn_conv_org = s360_cpp_bypass;
 			w_in = w_org;
 			h_in = h_org;
 		break;
-        default:
-            s360_print("Unsupprted input format\n");
+		default:
+			s360_print("Unsupprted input format\n");
 			print_usage();
 			return -1;
 		}
 
-        switch(pfmt_rec)
-        {
-        case PROJ_FMT_ERP:
-            fn_conv_rec = s360_erp_to_cpp;
+		switch(pfmt_rec)
+		{
+		case PROJ_FMT_ERP:
+			fn_conv_rec = s360_erp_to_cpp;
 			w_in = w_rec;
-            h_in = h_rec;
-            break;
-        case PROJ_FMT_ISP:
-            fn_conv_rec = s360_isp_to_cpp;
-            break;
-        case PROJ_FMT_CMP:
-            fn_conv_rec = s360_cmp_to_cpp;
-            break;
-        case PROJ_FMT_OHP:
-            fn_conv_rec = s360_ohp_to_cpp;
-            break;
+			h_in = h_rec;
+			break;
+		case PROJ_FMT_ISP:
+			fn_conv_rec = s360_isp_to_cpp;
+			break;
+		case PROJ_FMT_CMP:
+			fn_conv_rec = s360_cmp_to_cpp;
+			break;
+		case PROJ_FMT_OHP:
+			fn_conv_rec = s360_ohp_to_cpp;
+			break;
 		case PROJ_FMT_TSP:
 			fn_conv_rec = s360_tsp_to_cpp;
+			break;
+		case PROJ_FMT_SSP:
+			fn_conv_rec = o360_ssp_to_cpp;
 			break;
 		case PROJ_FMT_CPP:
 			fn_conv_rec = s360_cpp_bypass;
@@ -873,7 +881,7 @@ int main(int argc, const char * argv[])
 			h_in = h_rec;
 			break;
 		default:
-            s360_print("Unsupprted input format\n");
+			s360_print("Unsupprted input format\n");
 			print_usage();
 			return -1;
 		}
@@ -911,27 +919,27 @@ int main(int argc, const char * argv[])
 
 	while(1)
 	{
-        S360_IMAGE      * img_org_m = NULL;
-        S360_IMAGE      * img_rec_m = NULL;
+		S360_IMAGE      * img_org_m = NULL;
+		S360_IMAGE      * img_rec_m = NULL;
 
 		if(s360_img_read(fp_org, img_org, cs_org) < 0) break;
 		if(s360_img_read(fp_rec, img_rec, cs_rec) < 0) break;
 
 		/* YCbCr 4:2:0 for now */
-        if (qmetric == OPT_METRIC_CPPPSNR)
-        {
-            ret = fn_conv_org(img_org, img_a, 0, NULL);
-            ret = fn_conv_rec(img_rec, img_b, 0, NULL);
-            img_org_m = img_a;
-            img_rec_m = img_b;
-        }
-        else
-        {
-            img_org_m = img_org;
-            img_rec_m = img_rec;
-        }
+		if (qmetric == OPT_METRIC_CPPPSNR)
+		{
+			ret = fn_conv_org(img_org, img_a, 0, NULL);
+			ret = fn_conv_rec(img_rec, img_b, 0, NULL);
+			img_org_m = img_a;
+			img_rec_m = img_b;
+		}
+		else
+		{
+			img_org_m = img_org;
+			img_rec_m = img_rec;
+		}
 
-        qual[0] = fn_qmetric(w_in, h_in, img_org_m->buffer[0], img_rec_m->buffer[0], cs_int);
+		qual[0] = fn_qmetric(w_in, h_in, img_org_m->buffer[0], img_rec_m->buffer[0], cs_int);
 		for(i=1; i<3; i++)
 		{
 			qual[i] = fn_qmetric(w_in>>1, h_in>>1, img_org_m->buffer[i], img_rec_m->buffer[i], cs_int);
@@ -956,8 +964,8 @@ int main(int argc, const char * argv[])
 		qual_sum[i] /= pic_cnt;
 	}
 
-    s360_print("QM_ID=%d\t%5.4f\t%5.4f\t%5.4f\n",
-        qmetric, (float)qual_sum[0], (float)qual_sum[1], (float)qual_sum[2]);
+	s360_print("QM_ID=%d\t%5.4f\t%5.4f\t%5.4f\n",
+		qmetric, (float)qual_sum[0], (float)qual_sum[1], (float)qual_sum[2]);
 
 
 ERR:

@@ -747,9 +747,9 @@ static void erp2isp_triangle_rev_half(int x, int w, int w_tri, int h_tri, \
 	int     pad_left, pad_rt;
 	int     start_w, end_w;
 	int     x_start, y_start;
-	int	    prev_align_left, prev_align_rt;
+	int     prev_align_left, prev_align_rt;
 	int     align;
-	int		risp_idx;
+	int     risp_idx;
 
 	prev_align_left = prev_align_rt = 0;
 

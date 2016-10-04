@@ -84,6 +84,7 @@
     <ClCompile Include="..\..\src\360tools_ohp.c" />
     <ClCompile Include="..\..\src\360tools_tbl.c" />
     <ClCompile Include="..\..\src\360tools_tsp.c" />
+    <ClCompile Include="..\..\src\360tools_ssp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\360tools.h" />
@@ -97,6 +98,7 @@
     <ClInclude Include="..\..\src\360tools_map.h" />
     <ClInclude Include="..\..\src\360tools_ohp.h" />
     <ClInclude Include="..\..\src\360tools_tsp.h" />
+    <ClInclude Include="..\..\src\360tools_ssp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

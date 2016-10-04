@@ -341,15 +341,16 @@ static void pad_cmp_plane(uint8 *dst, int w_dst, int h_dst, int s_dst, int w_squ
 static int erp_to_cmp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int pad_size, int cs, S360_SPH_COORD  * map)
 {
-	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-		double x, double y, void * dst, int x_dst);
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 
 	double      x, y;
 	int         i, j;
-	int			w_start, w_end;
+	int         w_start, w_end, h_start;
 
 	w_start = opt ? -pad_size : 0;
 	w_end = opt ? w_src + pad_size : w_src;
+	h_start = 0;
 
 	if (cs == S360_COLORSPACE_YUV420)
 	{
@@ -371,7 +372,7 @@ static int erp_to_cmp_plane(void * src, int w_src, int h_src, int s_src, \
 				x = (map[i].lng / 360) * w_src;
 				y = (map[i].lat / 180) * h_src;
 
-				fn_resample(src, w_start, w_end, h_src, s_src, x, y, dst, i);
+				fn_resample(src, w_start, w_end, h_start, h_src, s_src, x, y, dst, i);
 			}
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
@@ -469,7 +470,7 @@ static int cpp_to_cmp_plane(void * src, int w_src, int h_src, int s_src, \
 				x = (lo_src * (2 * cos(2 * la_src / 3) - 1) + PI) * w_src / (2 * PI);
 				y = (PI * sin((la_src) / 3) + M_PI_2) * h_src / PI;
 
-				fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+				fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 			}
 		}
 		map += w_dst;
@@ -482,11 +483,11 @@ static int cpp_to_cmp_plane(void * src, int w_src, int h_src, int s_src, \
 	{
 		if (cs == S360_COLORSPACE_YUV420)
 		{
-			pad_cmp_plane(dst, w_dst, h_dst, s_dst, w_squ, pad_size);
+			pad_cmp_plane((uint8*)dst, w_dst, h_dst, s_dst, w_squ, pad_size);
 		}
 		else if (cs == S360_COLORSPACE_YUV420_10)
 		{
-			pad_cmp_plane_10b(dst, w_dst, h_dst, (s_dst >> 1), w_squ, pad_size);
+			pad_cmp_plane_10b((uint16*)dst, w_dst, h_dst, (s_dst >> 1), w_squ, pad_size);
 		}
 
 	}
@@ -593,11 +594,11 @@ static void cmp_to_erp_sph2point(double  lng, double lat, int w_squ, double* x, 
 static int cmp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int cs)
 {
-	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-		double x, double y, void * dst, int x_dst);
-	double	vec_12[3], vec_13[3];
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
+	double  vec_12[3], vec_13[3];
 	double  lng, lat, x, y;
-	double	d12, d13;
+	double  d12, d13;
 	int     v_1_3d, v_2_3d, v_3_3d;
 	int     i, j;
 
@@ -628,7 +629,7 @@ static int cmp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 			lat = PI * j / h_dst;
 
 			cmp_to_erp_sph2point(lng, lat, w_squ, &x, &y, d12, d13);
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
 	}
@@ -670,8 +671,8 @@ int s360_cmp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 static int cmp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int cs)
 {
-	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-		double x, double y, void * dst, int x_dst);
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 
 	double   vec_12[3], vec_13[3];
 	double   lng, lat, x, y;
@@ -720,7 +721,7 @@ static int cmp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 				continue;
 
 			cmp_to_erp_sph2point(lng, lat, w_squ, &x, &y, d12, d13);
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 
 		dst = (void *)((uint8 *)dst + s_dst);

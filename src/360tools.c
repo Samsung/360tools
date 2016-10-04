@@ -298,8 +298,8 @@ void s360_deinit(void)
 }
 
 /* lanczos */
-void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
-	double x, double y, void * dst, int x_dst)
+void resample_2d(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst)
 {
 	uint8 * src_8;
 	uint8 * dst_8;
@@ -315,7 +315,7 @@ void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 		{
 			idx_x = (int)x + i + 1;
 			idx_y = (int)y + j + 1;
-			if(idx_y >= 0 && idx_x >= w_start && idx_x < w_end && idx_y < h_src)
+			if(idx_x >= w_start && idx_y >= h_start && idx_x < w_end && idx_y < h_end)
 			{
 				coef = (float)(lanczos_coef(x - idx_x) * lanczos_coef(y - idx_y));
 				res += src_8[idx_x + idx_y * s_src] * coef;
@@ -331,8 +331,8 @@ void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 }
 
 /* lanczos for 10-bit*/
-void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
-	double x, double y, void * dst, int x_dst)
+void resample_2d_10b(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst)
 {
 	double coef, sum = 0, res = 0;
 	int i, j, idx_x, idx_y;
@@ -348,7 +348,7 @@ void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
 		{
 			idx_x = (int)x + i + 1;
 			idx_y = (int)y + j + 1;
-			if(idx_y >= 0 && idx_x >= w_start && idx_x < w_end && idx_y < h_src)
+			if(idx_x >= w_start && idx_y >= h_start && idx_x < w_end && idx_y < h_end)
 			{
 				coef = lanczos_coef(x - idx_x) * lanczos_coef(y - idx_y);
 				res += src_16[idx_x + idx_y * s_src] * coef;
@@ -364,8 +364,8 @@ void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
 }
 
 /* bi-linear */
-void resample_bl_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
-	double x, double y, void * dst, int x_dst)
+void resample_bl_2d(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst)
 {
 	int val;
 	int w_src;
@@ -377,7 +377,7 @@ void resample_bl_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 
 	w_src = w_end - w_start;
 
-	if(x > -1 && y > -1 && x < w_src && y < h_src)
+	if(x > w_start-1 && y > w_end-1 && x < w_src && y < h_end)
 	{
 		double dx = x - (int)x;
 		double dy = y - (int)y;
@@ -389,7 +389,7 @@ void resample_bl_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 		double s0, s1, s2, s3;
 
 		int ox = ((int)x + 1 < w_src ? 1 : 0);
-		int oy = ((int)y + 1 < h_src ? s_src : 0);
+		int oy = ((int)y + 1 < h_end ? s_src : 0);
 		int off0 = ((int)x + (int)y * s_src);
 		int off1 = off0 + ox;
 		int off2 = off0 + oy;
@@ -405,8 +405,8 @@ void resample_bl_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 }
 
 /* bi-linear */
-void resample_bl_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
-	double x, double y, void * dst, int x_dst)
+void resample_bl_2d_10b(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst)
 {
 	int val;
 	int w_src;
@@ -418,7 +418,7 @@ void resample_bl_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src
 
 	w_src = w_end - w_start;
 
-	if(x > -1 && y > -1 && x < w_src && y < h_src)
+	if(x > -1 && y > -1 && x < w_src && y < h_end)
 	{
 		double dx = x - (int)x;
 		double dy = y - (int)y;
@@ -430,7 +430,7 @@ void resample_bl_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src
 		double s0, s1, s2, s3;
 
 		int ox = ((int)x + 1 < w_src ? 1 : 0);
-		int oy = ((int)y + 1 < h_src ? s_src : 0);
+		int oy = ((int)y + 1 < h_end ? s_src : 0);
 		int off0 = ((int)x + (int)y * s_src);
 		int off1 = off0 + ox;
 		int off2 = off0 + oy;

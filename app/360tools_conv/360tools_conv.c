@@ -97,6 +97,8 @@ static S360_ARGS_OPT argopt[] = \
 		"6:  OHP  to ERP\n\t"
 		"7:  ERP  to TSP\n\t"
 		"8:  TSP  to ERP\n\t"
+		"9:  ERP  to SSP\n\t"
+		"10: SSP  to ERP\n\t"
 		"11: ISP  to RISP\n\t"
 		"12: RISP to ISP\n\t"
 		"13: CMP  to RCMP\n\t"
@@ -110,6 +112,7 @@ static S360_ARGS_OPT argopt[] = \
 		"33: CPP  to CMP\n\t"
 		"34: CPP  to OHP\n\t"
 		"35: CPP  to TSP\n\t"
+		"36: CPP  to SSP\n\t"
 	},
 	{
 		'l', "out_width", S360_ARGS_VAL_TYPE_INTEGER|S360_ARGS_VAL_TYPE_MANDATORY,
@@ -278,7 +281,7 @@ int main(int argc, const char * argv[])
 	if((cfmt == CONV_FMT_OHP_TO_ROHP) && (w_out != w_in || (h_out*2) != h_in))
 	{
 		s360_print("Invalid output resolution %dx%d, ROHP does not support "
-			"resize\n:",	w_out, h_out);
+			"resize\n:", w_out, h_out);
 			s360_print("Suggested dimension: %dx%d\n", w_in, h_in/2);
 		print_usage();
 		goto END;
@@ -290,6 +293,15 @@ int main(int argc, const char * argv[])
 		s360_print("Invalid output resolution for TSP, suggested aspect "
 			"ratio 2:1 and must be multiple of 4: %dx%d\n", w_out, h_out);
 		s360_print("Suggested sample dimension: %dx%d\n", w_out, w_out/2);
+		print_usage();
+		goto END;
+	}
+
+	if ((cfmt == CONV_FMT_ERP_TO_SSP || cfmt == CONV_FMT_CPP_TO_SSP) &&
+		((w_out % 4 != 0 || h_out % 4 != 0) || (w_out * 3 != h_out * 4))) 
+	{
+		s360_print("Invalid output resolution for SSP. "
+			"Suggested aspect ratio 4:3\n");
 		print_usage();
 		goto END;
 	}
@@ -359,6 +371,12 @@ int main(int argc, const char * argv[])
 	case CONV_FMT_TSP_TO_ERP:
 		fn_conv = s360_tsp_to_erp;
 		break;
+	case CONV_FMT_ERP_TO_SSP:
+		fn_conv = o360_erp_to_ssp;
+		break;
+	case CONV_FMT_SSP_TO_ERP:
+		fn_conv = o360_ssp_to_erp;
+		break;
 	case CONV_FMT_ISP_TO_RISP:
 		fn_conv = s360_isp_to_risp2;
 		break;
@@ -394,6 +412,9 @@ int main(int argc, const char * argv[])
 		break;
 	case CONV_FMT_CPP_TO_OHP:
 		fn_conv = s360_cpp_to_ohp;
+		break;
+	case CONV_FMT_CPP_TO_SSP:
+		fn_conv = o360_cpp_to_ssp;
 		break;
 	default:
 		s360_print("Unsupprted converting format\n");

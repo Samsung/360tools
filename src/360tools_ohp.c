@@ -303,16 +303,17 @@ static int pad_ohp_plane_10b(uint16 * ohp, int w, int h, int s, S360_SPH_COORD *
 static int erp_to_ohp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_tri, int opt, int cs, int pad_sz, S360_SPH_COORD * map)
 {
-    void  (*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-							double x, double y, void * dst, int x_dst);
-    double      x, y;
+	void  (*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
+	double      x, y;
 	int         i, j;
-	int         w_start, w_end;
+	int         w_start, w_end, h_start;
 
 	w_start = opt ? -pad_sz : 0;
 	w_end = opt ? w_src + pad_sz : w_src;
+	h_start = 0;
 
-    if(cs == S360_COLORSPACE_YUV420)
+	if(cs == S360_COLORSPACE_YUV420)
 	{
 		fn_resample = resample_2d;
 	}
@@ -331,7 +332,7 @@ static int erp_to_ohp_plane(void * src, int w_src, int h_src, int s_src, \
 				x = (map[i].lng / 360) * w_src;
 				y = (map[i].lat / 180) * h_src;
 
-				fn_resample(src, w_start, w_end, h_src, s_src, x, y, dst, i);
+				fn_resample(src, w_start, w_end, h_start, h_src, s_src, x, y, dst, i);
 			}
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
@@ -453,7 +454,7 @@ static int cpp_to_ohp_plane(int w_src, int h_src, int w_dst, int h_dst, \
 				x = (lo_src * (2*cos(2*la_src/3) - 1) + PI) * w_src / (2* PI); 
 				y = (PI * sin((la_src)/3) + M_PI_2) * h_src / PI;
 
-				fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+				fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 			}
 		}
 		map += w_dst;
@@ -567,8 +568,8 @@ static int get_tri_idx(double x, double y, double z, double center[][3])
 static int ohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int cs)
 {
-	void  (*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-							double x, double y, void * dst, int x_dst);
+	void  (*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 	double  n1[3], n2[3], normal[3], mid[3], xyz[3], t_vec[3];
 	double  lng, lat, x, y, u;
 	double  h_tri_3d, w_tri_3d;
@@ -706,7 +707,7 @@ static int ohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 				x = vertex_x - x;
 				y = vertex_y + y;
 			}
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
 	}
@@ -1119,8 +1120,8 @@ int s360_rohp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_M
 static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int cs)
 {
-    void  (*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-							double x, double y, void * dst, int x_dst);
+	void  (*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 
 	double   n1[3], n2[3], normal[3], mid[3], xyz[3], t_vec[3];
 	double   lng, lat, x, y, u;
@@ -1254,7 +1255,6 @@ static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 				vertex_x = (w_tri >> 1) + 3 * w_tri;
 				vertex_y = 0;
 				break;
-
 			case 4:
 				vertex_x = (w_tri >> 1);
 				vertex_y = y2;
@@ -1271,8 +1271,8 @@ static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 				vertex_x = (w_tri >> 1) + 3 * w_tri;
 				vertex_y = y2;
 				break;
-			
 			}
+
 			if(vertex_y >= y2)
 			{
 				y = -y;
@@ -1288,7 +1288,7 @@ static int ohp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 				x = vertex_x - x;
 				y = vertex_y + y;
 			}
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 
 		dst = (void *)((uint8 *)dst + s_dst);

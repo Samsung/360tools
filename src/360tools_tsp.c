@@ -38,8 +38,8 @@
 static int erp_to_tsp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int pad_size, int cs, S360_SPH_COORD  * map)
 {
-	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-		double x, double y, void * dst, int x_dst);
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 	void(*fn_resample_tsp)(void * src, int w_start, int w_end, int w_src, int h_src, int s_src,
 		void * dst, int w_dst, int x_dst, int y_dst, S360_SPH_COORD  * map);
 	int sub = TSPAA_S;
@@ -47,10 +47,11 @@ static int erp_to_tsp_plane(void * src, int w_src, int h_src, int s_src, \
 	unsigned int map_idx;
 	double x, y;
 	int i, j;
-	int w_start, w_end;
+	int w_start, w_end, h_start;
 
 	w_start = opt ? -pad_size : 0;
 	w_end = opt ? w_src + pad_size : w_src;
+	h_start = 0;
 
 	if (cs == S360_COLORSPACE_YUV420)
 	{
@@ -74,7 +75,7 @@ static int erp_to_tsp_plane(void * src, int w_src, int h_src, int s_src, \
 				x = (map[map_idx].lng / 360.0) * w_src;
 				y = (map[map_idx].lat / 180.0) * h_src;
 
-				fn_resample(src, w_start, w_end, h_src, s_src, x, y, dst, i);
+				fn_resample(src, w_start, w_end, h_start, h_src, s_src, x, y, dst, i);
 			}
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
@@ -222,8 +223,8 @@ static void tsp_to_erp_sph2point(double  lng, double lat, int w_squ, double* x, 
 static int tsp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int cs)
 {
-	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-		double x, double y, void * dst, int x_dst);
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst);
 	double	vec_12[3], vec_13[3];
 	double  lng, lat, x, y;
 	double	d12, d13;
@@ -257,7 +258,7 @@ static int tsp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 			lat = PI * j / h_dst;
 
 			tsp_to_erp_sph2point(lng, lat, w_squ, &x, &y, d12, d13);
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
 	}
@@ -299,8 +300,8 @@ int s360_tsp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 static int tsp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 	int w_dst, int h_dst, int s_dst, void * dst, int w_squ, int opt, int cs)
 {
-	void(*fn_resample)(void * src, int w_start, int w_end, int h_src, int s_src,
-		double x, double y, void * dst, int x_dst);
+	void(*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
 
 	double   vec_12[3], vec_13[3];
 	double   lng, lat, x, y;
@@ -349,7 +350,7 @@ static int tsp_to_cpp_plane(void * src, int w_src, int h_src, int s_src, \
 				continue;
 
 			tsp_to_erp_sph2point(lng, lat, w_squ, &x, &y, d12, d13);
-			fn_resample(src, 0, w_src, h_src, s_src, x, y, dst, i);
+			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 
 		dst = (void *)((uint8 *)dst + s_dst);

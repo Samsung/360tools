@@ -175,8 +175,8 @@ typedef unsigned long long     uint64;
 #define INT_10_BIT_DEPTH 2
 
 /* Resample function *********************************************************/
-typedef void(*resample_fn)(void * src, int w_start, int w_end, int h_src, int s_src, \
-    double x, double y, void * dst, int x_dst);
+typedef void(*resample_fn)(void * src, int w_start, int w_end,int h_start, \
+	int h_src, int s_src, double x, double y, void * dst, int x_dst);
 
 /* image buffer format *******************************************************/
 typedef struct
@@ -210,28 +210,32 @@ typedef struct
 /* Conversion Formats ******************************************************/
 typedef enum
 {
-    CONV_FMT_ERP_TO_CPP   = 0,
-    CONV_FMT_ERP_TO_ISP   = 1,
-    CONV_FMT_ISP_TO_ERP,
-    CONV_FMT_ERP_TO_CMP,
-    CONV_FMT_CMP_TO_ERP,
-    CONV_FMT_ERP_TO_OHP,
-    CONV_FMT_OHP_TO_ERP,
-    CONV_FMT_ERP_TO_TSP,
-    CONV_FMT_TSP_TO_ERP,
-    CONV_FMT_CPP_BYPASS,
-    CONV_FMT_ISP_TO_RISP  = 11,
-    CONV_FMT_RISP_TO_ISP,
-    CONV_FMT_CMP_TO_RCMP,
-    CONV_FMT_RCMP_TO_CMP,
-    CONV_FMT_OHP_TO_ROHP,
-    CONV_FMT_ROHP_TO_OHP,
-    CONV_FMT_ERP_TO_RISP1 = 21,
+	CONV_FMT_ERP_TO_CPP   = 0,
+	CONV_FMT_ERP_TO_ISP   = 1,
+	CONV_FMT_ISP_TO_ERP,
+	CONV_FMT_ERP_TO_CMP,
+	CONV_FMT_CMP_TO_ERP,
+	CONV_FMT_ERP_TO_OHP,
+	CONV_FMT_OHP_TO_ERP,
+	CONV_FMT_ERP_TO_TSP,
+	CONV_FMT_TSP_TO_ERP,
+	CONV_FMT_ERP_TO_SSP,
+	CONV_FMT_SSP_TO_ERP,
+	CONV_FMT_ISP_TO_RISP  =11,
+	CONV_FMT_RISP_TO_ISP,
+	CONV_FMT_CMP_TO_RCMP,
+	CONV_FMT_RCMP_TO_CMP,
+	CONV_FMT_OHP_TO_ROHP,
+	CONV_FMT_ROHP_TO_OHP,
+	CONV_FMT_ERP_TO_RISP1 = 21,
 	CONV_FMT_RISP1_TO_ERP,
-    CONV_FMT_CPP_TO_ERP   = 31,
-    CONV_FMT_CPP_TO_ISP,
-    CONV_FMT_CPP_TO_CMP,
-    CONV_FMT_CPP_TO_OHP,
+	CONV_FMT_CPP_TO_ERP   = 31,
+	CONV_FMT_CPP_TO_ISP,
+	CONV_FMT_CPP_TO_CMP,
+	CONV_FMT_CPP_TO_OHP,
+	CONV_FMT_CPP_TO_SSP,
+	CONV_FMT_SSP_TO_CPP,
+	CONV_FMT_CPP_BYPASS,
 	CONV_FMT_MAX
 } CONV_FMT;
 
@@ -244,6 +248,7 @@ typedef enum
 	PROJ_FMT_OHP,
 	PROJ_FMT_TSP,
 	PROJ_FMT_CPP,
+	PROJ_FMT_SSP,
 	PROJ_FMT_MAX
 } PROJ_FMT;
 

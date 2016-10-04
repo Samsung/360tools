@@ -77,10 +77,10 @@ void cart_to_sph(double x, double y, double z, S360_SPH_COORD  * coord);
 #define LANCZOS_FAST_SCALE      100
 #define LANCZOS_FAST_MAX_SIZE   (LANCZOS_TAB_SIZE << 1)
 #endif
-void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
-	double x, double y, void * dst, int x_dst);
-void resample_2d_10b(void * src, int w_start, int w_end, int h_src, int s_src, \
-	double x, double y, void * dst, int x_dst);
+void resample_2d(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst);
+void resample_2d_10b(void * src, int w_start, int w_end, int h_start, int h_end,\
+	int s_src, double x, double y, void * dst, int x_dst);
 void resample_tsp_2d(void * src, int w_start, int w_end, int w_src, int h_src, \
 	int s_src, void * dst, int w_dst, int i, int j, S360_SPH_COORD * map);
 void resample_tsp_2d_10b(void * src, int w_start, int w_end, int w_src, \
@@ -167,6 +167,7 @@ void s360_deinit(void);
 #include "360tools_ohp.h"
 #include "360tools_tsp.h"
 #include "360tools_cpp.h"
+#include "360tools_ssp.h"
 
 #ifdef __cplusplus
 }
