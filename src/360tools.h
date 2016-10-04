@@ -75,7 +75,7 @@ void cart_to_sph(double x, double y, double z, S360_SPH_COORD  * coord);
 #define LANCZOS_FAST_MODE       1
 #if LANCZOS_FAST_MODE
 #define LANCZOS_FAST_SCALE      100
-#define LANCZOS_FAST_MAX_SIZE   4096
+#define LANCZOS_FAST_MAX_SIZE   (LANCZOS_TAB_SIZE << 1)
 #endif
 void resample_2d(void * src, int w_start, int w_end, int h_src, int s_src, \
 	double x, double y, void * dst, int x_dst);

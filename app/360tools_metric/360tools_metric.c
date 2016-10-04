@@ -762,6 +762,12 @@ int main(int argc, const char * argv[])
 	{
 	case OPT_METRIC_PSNR: /* PSNR */
 		fn_qmetric = psnr;
+		if(cs_org != cs_rec)
+		{
+			s360_print("Color spaces for files must match.\n");
+			print_usage(); ret = -1; goto ERR;
+		}
+		cs_int = cs_org;
 		break;
 	case OPT_METRIC_SPSNR: /* Spherical PSNR (S-PSNR) */
 		if(!opt_flag[CMD_FLAG_METRIC_FNAME_SPH])
@@ -786,10 +792,21 @@ int main(int argc, const char * argv[])
 			s360_print("Failed to create Sphere Co-ordinates\n");
 			goto ERR;
 		}
-
+		if(cs_org != cs_rec)
+		{
+			s360_print("Color spaces for files must match.\n");
+			print_usage(); ret = -1; goto ERR;
+		}
+		cs_int = cs_org;
 		fn_qmetric = s_psnr;
 		break;
 	case OPT_METRIC_WSPSNR: /* Weighted Spherical PSNR (WS-PSNR) */
+		if(cs_org != cs_rec)
+		{
+			s360_print("Color spaces for files must match.\n");
+			print_usage(); ret = -1; goto ERR;
+		}
+		cs_int = cs_org;
 		fn_qmetric = ws_psnr;
 		break;
 	case OPT_METRIC_CPPPSNR: /* Craster Parabolic Projection PSNR (CPP-PSNR) */

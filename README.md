@@ -104,13 +104,13 @@ Checkout the source for 360 Tools
 ## Recommended equal spatial resolution: number of pixels in each projection is constant 
 	(S_ERP == S_ISP == S_CPP); Value is suggested for HM and JEM sw
 	+	ERP 		3840x1920
-		- ISP		4268x2016
+		- ISP		4928x2328
 		- OHP		5984x2592
 		- CMP		3840x2880
 		- TSP		1920x960
 		
 	+	ERP 		4096x2048
-		- ISP		4268x2016
+		- ISP		4928x2328
 		- OHP		6208x2688
 		- CMP		4096x3072
 		- TSP		2048x1024
