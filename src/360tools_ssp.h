@@ -30,6 +30,13 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 * THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+/* Jisheng Li, Ziyu Wen, Sihan Li, Yikai Zhao, Bichuan Guo, and Jiangtao Wen.
+* "Novel tile segmentation scheme for omnidirectional video." In Image 
+* Processing (ICIP), 2016 IEEE International Conference on, pp. 370-374. 
+* IEEE, 2016.
+*/
+
 #ifndef __360TOOLS_SSP_H__
 #define __360TOOLS_SSP_H__
 

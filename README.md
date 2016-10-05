@@ -52,7 +52,7 @@ Checkout the source for 360 Tools
 	+	Octahedron projection (OHP)
 	+	Cubemap projection (CMP)
 	+	Truncated Square Pyramid projection (TSP)
-	+	(SSP)
+	+	Segmented Sphere Projection (SSP)
 	+	Reshaped Icosahedral projection (RISP)
 	+	Reshaped Octahedron projection (ROHP)
 	+	Reshaped Cubemap projection (RCMP)
