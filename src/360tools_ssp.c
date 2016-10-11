@@ -183,9 +183,9 @@ static int cpp_to_ssp_plane(void * src, int w_src, int h_src, int s_src, \
             }
             else if (j >= w_square && j < w_square * 2)
             {
-                y    = h_src * (.5 + sin(PI / 3 * ((double)(j - w_square/2)/h_src -.5f)));
+                y    = h_src * (.5 + sin(PI / 3 * ((double)(j - w_square/2)*3/2/h_dst -.5f)));
                 phi  = 3 * asin(y/h_src-.5);
-                x    = (w_dst/2) * (1 + ((4 * cos(2* phi/3)) - 2) * ((double)i/w_src -.5));
+                x    = (w_src/2) * (1 + ((4 * cos(2* phi/3)) - 2) * ((double)i/w_dst -.5));
                 fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
             }
             else

@@ -36,22 +36,20 @@
 #include "360tools_erp.h"
 
 static void erp_to_cpp_plane(int w_src, int h_src, int s_src, void * src,
-    void * dst, int s_dst, int cs, int opt, int pad_sz)
+	int w_dst, int h_dst, void * dst, int s_dst, int cs, int opt, int pad_sz)
 {
 	void    (* fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
 		int s_src, double x, double y, void * dst, int x_dst);
 	double lambda, phi, x, y;
-	int offset;
-	int i, j, w_dst, h_dst;
+	int    offset;
+	int    i, j;
 	void * dst0;
 	uint8 * map;
-	int	w_start, w_end, h_start;
+	int     w_start, w_end, h_start;
 
 	w_start = opt ? -pad_sz : 0;
 	w_end = opt ? w_src + pad_sz : w_src;
 	h_start = 0;
-	w_dst = w_src;
-	h_dst = h_src;
 
 	map = (uint8 *)s360_malloc(sizeof(uint8) * w_dst * h_dst);
 	cpp_map_plane(w_dst, h_dst, s_dst, map);
@@ -69,15 +67,15 @@ static void erp_to_cpp_plane(int w_src, int h_src, int s_src, void * src,
 	}
 
 	offset = 0;
-	for(j=0; j<h_src; j++)
+	for(j=0; j<h_dst; j++)
 	{
-		for(i=0; i<w_src; i++)
+		for(i=0; i<w_dst; i++)
 		{
 			phi = 3 *  asin((double)j/h_src-0.5);
 			lambda = (2 * PI * (double)i/w_src - PI) / (2 * cos(2 * phi/3) - 1);
 
-			x = w_dst * (lambda + PI)/(2*PI);
-			y = h_dst * (phi + PI/2)/PI;
+			x = w_src * (lambda + PI)/(2*PI);
+			y = h_src * (phi + PI/2)/PI;
 
 			if(map[i+j*w_src] != 0)
 			{
@@ -103,7 +101,7 @@ static void erp_to_cpp_plane(int w_src, int h_src, int s_src, void * src,
 
 int s360_erp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
 {
-	int i, w_src, w_dst, h_src, pad_sz;
+	int i, w_src, w_dst, h_src, h_dst, pad_sz;
 
 	s360_img_reset(img_dst);
 	if (opt & S360_OPT_PAD)
@@ -115,17 +113,23 @@ int s360_erp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 		{
 			if(i == 0)
 			{
-				w_src = w_dst = img_src->width;
+				w_src = img_src->width;
+				w_dst = img_dst->width;
 				h_src = img_src->height;
+				h_dst = img_dst->height;
 				pad_sz = (opt & S360_OPT_PAD) ? PAD_SIZE : 0;
 			}
 			else
 			{
-				w_src = w_dst = (img_src->width + 1)>> 1;
+				w_src = (img_src->width + 1)  >> 1;
+				w_dst = (img_dst->width + 1)  >> 1;
 				h_src = (img_src->height + 1) >> 1;
+				h_dst = (img_dst->height + 1) >> 1;
 				pad_sz = (opt & S360_OPT_PAD) ? PAD_SIZE >> 1 : 0;
 			}
-			erp_to_cpp_plane(w_src, h_src, img_src->stride[i], img_src->buffer[i], img_dst->buffer[i], img_dst->stride[i], img_src->colorspace, opt, pad_sz);
+			erp_to_cpp_plane(w_src, h_src, img_src->stride[i], \
+				img_src->buffer[i], w_dst, h_dst, img_dst->buffer[i], \
+				img_dst->stride[i], img_src->colorspace, opt, pad_sz);
 		}
 	}
 	else
@@ -135,17 +139,16 @@ int s360_erp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 	return S360_OK;
 }
 
-static void cpp_to_erp_plane(int w_src, int h_src, int s_src, void * src, void * dst, int s_dst, int cs)
+static void cpp_to_erp_plane(int w_src, int h_src, int s_src, void * src, \
+	int w_dst, int h_dst, void * dst, int s_dst, int cs)
 {
 	resample_fn fn_resample;
 	uint8 * map;
-	int i, j;
-	double phi;
-	double x, y, h_dst, w_dst;
+	int     i, j;
+	double  phi;
+	double  x, y;
 	
 	fn_resample = resample_fp(cs);
-	h_dst = h_src;
-	w_dst = w_src;
 
 	map = (uint8 *)s360_malloc(sizeof(uint8) * w_src * h_src);
 	cpp_map_plane(w_src, h_src, s_src, map);
@@ -160,13 +163,13 @@ static void cpp_to_erp_plane(int w_src, int h_src, int s_src, void * src, void *
 		s_dst <<= 1;
 	}
 
-	for(j=0; j<h_src; j++)
+	for(j=0; j<h_dst; j++)
 	{
-		for(i=0; i<w_src; i++)
+		for(i=0; i<w_dst; i++)
 		{
-			y    = h_dst * (.5 + sin(PI / 3 * ((double)j/h_src -.5f)));
+			y    = h_src * (.5 + sin(PI / 3 * ((double)j/h_dst -.5f)));
 			phi  = 3 * asin(y/h_src-.5);
-			x    = (w_dst/2) * (1 + ((4 * cos(2* phi/3)) - 2) * ((double)i/w_src -.5));
+			x    = (w_src/2) * (1 + ((4 * cos(2* phi/3)) - 2) * ((double)i/w_dst -.5));
 
 			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
@@ -177,7 +180,7 @@ static void cpp_to_erp_plane(int w_src, int h_src, int s_src, void * src, void *
 
 int s360_cpp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
 {
-	int i, w_src, w_dst, h_src;
+	int i, w_src, w_dst, h_src, h_dst;
 
 	if(IS_VALID_CS(img_src->colorspace))
 	{
@@ -185,15 +188,21 @@ int s360_cpp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 		{
 			if(i == 0)
 			{
-				w_src = w_dst = img_src->width;
+				w_src = img_src->width;
 				h_src = img_src->height;
+				w_dst = img_dst->width;
+				h_dst = img_dst->height;
 			}
 			else
 			{
-				w_src = w_dst = img_src->width >> 1;
+				w_src = img_src->width  >> 1;
 				h_src = img_src->height >> 1;
+				w_dst = img_dst->width  >> 1;
+				h_dst = img_dst->height >> 1;
 			}
-			cpp_to_erp_plane(w_src, h_src, img_src->stride[i], img_src->buffer[i], img_dst->buffer[i], img_dst->stride[i], img_src->colorspace);
+			cpp_to_erp_plane(w_src, h_src, img_src->stride[i], \
+				img_src->buffer[i], w_dst, h_dst, img_dst->buffer[i], \
+				img_dst->stride[i], img_src->colorspace);
 		}
 		return S360_OK;
 	}
