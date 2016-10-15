@@ -225,6 +225,15 @@ int main(int argc, const char * argv[])
 		goto END;
 	}
 
+	if((cfmt == CONV_FMT_ERP_TO_CPP) && (w_out != w_in || h_out != h_in))
+	{
+		s360_print("Downsamplin CPP may affect your final results "
+			"1:1 scale is recommended: %dx%d\n", w_out, h_out);
+		s360_print("Suggested sample dimension: %dx%d\n", w_in, h_in);
+		print_usage();
+		goto END;
+	}
+
 	if((cfmt == CONV_FMT_ERP_TO_CMP) &&
         ((w_out%4 != 0 || h_out%4 != 0) || (w_out*3 != h_out*4)))
 	{

@@ -177,7 +177,279 @@ static void print_usage(void)
 /* Weighted Spherical PSNR ***************************************************/
 /* “WS-PSNR for 360 video quality evaluation”, Yule Sun, Ang Lu, Lu Yu,      */
 /* ISO/IEC JTC1/SC29/WG11 MPEG2016/M38551, May 2016, Geneva                  */
-static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
+static int w_map_set(double * w_map, int w, int h, char pfmt)
+{
+	int i, j;
+
+	switch(pfmt)
+	{
+		case PROJ_FMT_ERP:
+		{
+			for(j=0;j<h;j++)
+			{
+				for(i=0;i<w;i++)
+				{
+					w_map[i+j*w] = cos ((j - (h/2) + 0.5) * PI/h);
+				}
+			}
+			break;
+		}
+		case PROJ_FMT_CMP:
+		{
+			int ci, cj, r2;
+			double d2;
+
+			for(j=0;j<h;j++)
+			{
+				for(i=0;i<w;i++)
+				{
+					if (i < w/4 && j < h/3 ) 
+					{
+						ci = w>>3;
+						cj = h/6;
+					}
+					else if (i < w>>2 && j >= h/3 && j < 2*h/3) 
+					{
+						ci = w>>3;
+						cj = h>>1;
+					}
+					else if (i < w>>2 &&j >= 2*h/3) 
+					{
+						ci = w>>8;
+						cj = 5*h/6;
+					}
+					else if (i >= w>>2 && i < w>>1 && j >= h/3 && j < 2*h/3)
+					{
+						ci = 3*w>>3;
+						cj = h>>1;
+					}
+					else if (i >= w>>1 && i < 3*w>>2 && j >= h/3 && j < 2*h/3)
+					{
+						ci = 5*w>>3;
+						cj = h>>1;
+					}
+					else if (i > 3*w>>2 && j >= h/3 && j < 2*h/3)
+					{
+						ci = 7*w>>3;
+						cj = h>>1;
+					}
+					else 
+					{
+						w_map[i+j*w] = 0;
+					}
+					d2 = (i+0.5-ci)*(i+0.5-ci)+(j+0.5-cj)*(j+0.5-cj);
+					r2 = (w>>3)*(w>>3);
+					w_map[i+j*w] = 1.0/((1+d2/r2)*sqrt(1.0*(1+d2/r2)));
+				}
+			}
+			break;
+		}
+		case PROJ_FMT_ISP:
+		{
+			for(j=0;j<h;j++)
+			{
+				for(i=0;i<w;i++)
+				{
+					int    tri,ht;
+					int    ci = 0;
+					int    cj = 0;
+					double r2, d2;
+					
+					tri = w*2/11;
+					ht  = h/3;
+
+					if      (i <  tri && j < ht && abs(i+0.5-tri/2)<j/SQRT_3 ) 
+					{
+						ci = tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i >= tri && i < 2 * tri && j<ht && abs(i+0.5-3*tri/2)<j/SQRT_3)
+					{
+						ci = 3*tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i >= 2 * tri && i < 3*tri && j < ht && abs(i+0.5-5*tri/2) < j/SQRT_3) 
+					{
+						ci = 5*tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i >= 3 * tri && i < 4 * tri && j < ht && abs(i+0.5-7*tri/2) < j/SQRT_3) 
+					{
+						ci = 7*tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i >= 4*tri && i < 5*tri && j < ht && abs(i+0.5-9*tri/2)<j/SQRT_3) 
+					{
+						ci = 9*tri/2;
+						cj = 2*ht/3;
+					}
+
+					else if (i >= tri/2 && i < 3*tri/2 && j>=ht &&j < 2*ht && abs(i+0.5-tri)<(j-ht)/SQRT_3 ) 
+					{
+						ci = tri;
+						cj = 5*ht/3;
+					}
+					else if (i>=3*tri/2 && i<5*tri/2 && j>=ht && j < 2*ht && abs(i+0.5-2*tri)<(j-ht)/SQRT_3)
+					{
+						ci = 2*tri;
+						cj = 5*ht/3;
+					}
+					else if (i>=5*tri/2 && i<7*tri/2 && j>=ht && j < 2*ht && abs(i+0.5-3*tri)<(j-ht)/SQRT_3) 
+					{
+						ci = 3*tri;
+						cj = 5*ht/3;
+					}
+					else if (i>=7*tri/2 && i<9*tri/2 && j>=ht && j < 2*ht && abs(i+0.5-4*tri)<(j-ht)/SQRT_3) 
+					{
+						ci = 4*tri;
+						cj = 5*ht/3;
+					}
+					else if (i>=9*tri/2 && j>=ht && j < 2*ht && abs(i+0.5-5*tri)<(j-ht)/SQRT_3) 
+					{
+						ci = 5*tri;
+						cj = 5*ht/3;
+					}
+					else if (i < tri && j>=ht && j < 2*ht && abs(i+0.5-tri/2)<(2*ht-j)/SQRT_3 ) 
+					{
+						ci = tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=tri && i<2*tri && j>=ht && j < 2*ht && abs(i+0.5-3*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 3*tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=2*tri && i<3*tri && j>=ht && j < 2*ht && abs(i+0.5-5*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 5*tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=3*tri && i<4*tri && j>=ht && j < 2*ht && abs(i+0.5-7*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 7*tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=4*tri && i<5*tri && j>=ht && j < 2*ht && abs(i+0.5-9*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 9*tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=tri/2 && i < 3*tri/2 && j>=2*ht && abs(i+0.5-tri)<(3*ht-j)/SQRT_3 ) 
+					{
+						ci = tri;
+						cj = 7*ht/3;
+					}
+					else if (i>=3*tri/2 && i<5*tri/2 && j>=2*ht && abs(i+0.5-2*tri)<(3*ht-j)/SQRT_3)
+					{
+						ci = 2*tri;
+						cj = 7*ht/3;
+					}
+					else if (i>=5*tri/2 && i<7*tri/2 && j>=2* ht  && abs(i+0.5-3*tri)<(3*ht-j)/SQRT_3) 
+					{
+						ci = 3*tri;
+						cj = 7*ht/3;
+					}
+					else if (i>=7*tri/2 && i<9*tri/2 && j>=2*ht && abs(i+0.5-4*tri)<(3*ht-j)/SQRT_3) 
+					{
+						ci = 4*tri;
+						cj = 7*ht/3;
+					}
+					else if (i>=9*tri/2 && j>=2*ht && abs(i+0.5-5*tri)<(3*ht-j)/SQRT_3) 
+					{
+						ci = 5*tri;
+						cj = 7*ht/3;
+					}
+					else 
+					{
+						w_map[i+j*w] = 0;
+					}
+					d2 = (i+0.5-ci)*(i+0.5-ci)+(j+0.5-cj)*(j+0.5-cj);
+					r2 = (w * WS_PSNR_ISP_MAGIC)*(w * WS_PSNR_ISP_MAGIC);
+					w_map[i+j*w] = 1.0/((1+d2/r2)*sqrt(1.0*(1+d2/r2)));
+				}
+			}
+			break;
+		}
+		case PROJ_FMT_OHP:
+		{
+			for(j=0;j<h;j++)
+			{
+				for(i=0;i<w;i++)
+				{
+					int    tri,ht;
+					int    ci = 0;
+					int    cj = 0;
+					double r2,d2;
+
+					tri = w/4;
+					ht  = h/2;
+
+					if (i < tri && j < ht && abs(i+0.5-tri/2)<j/SQRT_3 ) 
+					{
+						ci = tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i>=tri && i<2*tri && j<ht && abs(i+0.5-3*tri/2)<j/SQRT_3) 
+					{
+						ci = 3*tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i>=2*tri && i<3*tri && j<ht && abs(i+0.5-5*tri/2)<j/SQRT_3) 
+					{
+						ci = 5*tri/2;
+						cj = 2*ht/3;
+					}
+					else if (i>=3*tri && j<ht && abs(i+0.5-7*tri/2)<j/SQRT_3) 
+					{
+						ci = 7*tri/2;
+						cj = 2*ht/3;
+					}
+					
+					else if (i < tri && j >= ht && abs(i+0.5-tri/2)<(2*ht-j)/SQRT_3 ) 
+					{
+						ci = tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=tri && i<2*tri && j>=ht && abs(i+0.5-3*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 3*tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=2*tri && i<3*tri && j>=ht && abs(i+0.5-5*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 5*tri/2;
+						cj = 4*ht/3;
+					}
+					else if (i>=3*tri && j>=ht && abs(i+0.5-7*tri/2)<(2*ht-j)/SQRT_3) 
+					{
+						ci = 7*tri/2;
+						cj = 4*ht/3;
+					}
+
+					else 
+					{
+						w_map[i+j*w] = 0;
+					}
+					d2 = (i+0.5-ci)*(i+0.5-ci)+(j+0.5-cj)*(j+0.5-cj);
+					r2 = (w/4/sqrt(6.0))*(w/4/sqrt(6.0));
+					w_map[i+j*w]  = 1.0/((1+d2/r2)*sqrt(1.0*(1+d2/r2)));
+				}
+			}
+			break;
+		}
+		case PROJ_FMT_CPP:
+		case PROJ_FMT_SSP:
+		case PROJ_FMT_TSP:
+		default:
+		{
+			return S360_PROJ_NOT_SUPPORTED;
+		}
+	}
+
+	return S360_OK;
+}
+
+static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace, double * w_map)
 {
 	int i, j;
 	double diff;
@@ -194,7 +466,7 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 		{
 			for(j=0;j<w;j++)
 			{
-				pixel_weight = cos ((i - (h/2) + 0.5) * PI/h);
+				pixel_weight = w_map[i*w + j];
 				diff = (double)src[i*w + j] - (double)dst[i*w + j];
 				diff = S360_ABS(diff);
 				sum += diff * diff * pixel_weight;
@@ -215,7 +487,7 @@ static double ws_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 		{
 			for(j=0;j<w;j++)
 			{
-				pixel_weight = cos ((i - (h/2) + 0.5) * PI/h);
+				pixel_weight = w_map[i*w + j];
 				diff = (double)src[i*w + j] - (double)dst[i*w + j];
 				diff = S360_ABS(diff);
 				sum += diff * diff * pixel_weight;
@@ -458,7 +730,7 @@ static float filter_420_10(uint16 * src, float x, float y, int w, int h, int s_s
 	return filt_val;
 }
 
-static double s_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
+static double s_psnr(int w, int h, void * psrc, void * pdst, int colorSpace, double * w_map)
 {
 	int               i;
 	float             cart[3];
@@ -523,7 +795,7 @@ static double s_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
 }
 
 /* PSNR **********************************************************************/
-static double psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
+static double psnr(int w, int h, void * psrc, void * pdst, int colorSpace, double * w_map)
 {
 	int i, j;
 	int diff;
@@ -609,7 +881,7 @@ static int map_plane(int w, int h, uint8 * map)
 	return size;
 }
 
-static double cpp_psnr(int w, int h, void * psrc, void * pdst, int colorSpace)
+static double cpp_psnr(int w, int h, void * psrc, void * pdst, int colorSpace, double * w_map)
 {
 	int i, j;
 	int diff;
@@ -684,16 +956,18 @@ int main(int argc, const char * argv[])
 	FILE            * fp_rec  = NULL;
 	FILE            * fp_sph  = NULL;
 
-	double         (* fn_qmetric)(int w, int h, void * src, void * dst, int cs);
+	double         (* fn_qmetric)(int w, int h, void * src, void * dst, int cs, double * w_map);
 	int            (* fn_conv_org)(S360_IMAGE * imgi, S360_IMAGE * imgo, int opt, S360_MAP * map);
 	int            (* fn_conv_rec)(S360_IMAGE * imgi, S360_IMAGE * imgo, int opt, S360_MAP * map);
 	int               i, ret = 0;
 	int               pic_cnt = 0;
 	int               h_in = 0;
 	int               w_in = 0;
-    int               cs_int = S360_COLORSPACE_YUV420_10;
+	int               cs_int = S360_COLORSPACE_YUV420_10;
 	double            qual[4] = {0,};
 	double            qual_sum[4] = {0,};
+	double          * w_map_l = NULL; // TODO: merge all svc info into img_dsc struct
+	double          * w_map_c = NULL;
 
 	ret = s360_args_parse_all(argc, argv, argopt);
 	if(ret != 0)
@@ -803,11 +1077,20 @@ int main(int argc, const char * argv[])
 		fn_qmetric = s_psnr;
 		break;
 	case OPT_METRIC_WSPSNR: /* Weighted Spherical PSNR (WS-PSNR) */
+		if(!opt_flag[CMD_FLAG_METRIC_PFMT_ORG])
+		{
+			s360_print("projection type should be set for WS-PSNR\n");
+			print_usage(); ret = -1; goto ERR;
+		}
 		if(cs_org != cs_rec)
 		{
 			s360_print("Color spaces for files must match.\n");
 			print_usage(); ret = -1; goto ERR;
 		}
+		w_map_l = (double *)s360_malloc(w_in*h_in * sizeof(double));
+		w_map_c = (double *)s360_malloc((w_in>>1)*(h_in>>1) * sizeof(double));
+		w_map_set(w_map_l, w_in, h_in, pfmt_org);
+		w_map_set(w_map_c, w_in>>1, h_in>>1, pfmt_org);
 		cs_int = cs_org;
 		fn_qmetric = ws_psnr;
 		break;
@@ -939,10 +1222,10 @@ int main(int argc, const char * argv[])
 			img_rec_m = img_rec;
 		}
 
-		qual[0] = fn_qmetric(w_in, h_in, img_org_m->buffer[0], img_rec_m->buffer[0], cs_int);
+		qual[0] = fn_qmetric(w_in, h_in, img_org_m->buffer[0], img_rec_m->buffer[0], cs_int, w_map_l);
 		for(i=1; i<3; i++)
 		{
-			qual[i] = fn_qmetric(w_in>>1, h_in>>1, img_org_m->buffer[i], img_rec_m->buffer[i], cs_int);
+			qual[i] = fn_qmetric(w_in>>1, h_in>>1, img_org_m->buffer[i], img_rec_m->buffer[i], cs_int, w_map_c);
 		}
 
 		if (verb)
@@ -969,16 +1252,18 @@ int main(int argc, const char * argv[])
 
 
 ERR:
-	if(fp_org) fclose(fp_org);
-	if(fp_rec) fclose(fp_rec);
-	if(fp_sph) fclose(fp_sph);
+	if(fp_org)  fclose(fp_org);
+	if(fp_rec)  fclose(fp_rec);
+	if(fp_sph)  fclose(fp_sph);
 
 	if(sph_pts) s360_mfree(sph_pts);
+	if(w_map_l) s360_mfree(w_map_l);
+	if(w_map_c) s360_mfree(w_map_c);
 
 	if(img_org) s360_img_delete(img_org);
 	if(img_rec) s360_img_delete(img_rec);
-	if(img_a) s360_img_delete(img_a);
-	if(img_b) s360_img_delete(img_b);
+	if(img_a)   s360_img_delete(img_a);
+	if(img_b)   s360_img_delete(img_b);
 
 	return ret;
 }

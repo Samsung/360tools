@@ -53,6 +53,7 @@ extern "C"
 #define S360_ERR_UNSUPPORTED               (-104)
 #define S360_ERR_UNSUPPORTED_COLORSPACE    (-105)
 #define S360_ERR_INVALID_DIMENSION         (-106)
+#define S360_PROJ_NOT_SUPPORTED            (-107)
 
 /* return value checking *****************************************************/
 #define S360_SUCCEEDED(ret)              ((ret) >= 0)
