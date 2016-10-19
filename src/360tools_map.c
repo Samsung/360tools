@@ -181,6 +181,382 @@ static void erp2ohp_triangle_rev(int x, int w, double h_tri, int tri_idx, \
 	}
 }
 
+void general_mapping(double input_x, double j, S360_SPH_COORD * map2_coord, \
+	int x, int side, int h_tri, double vector_12[3], double vector_13[3], \
+	int v_1_3d, double d12, double d13)
+{
+	double  point12[3], point13[3];
+	double  point_vec[3], xyz[3];
+	double  d12_scl, d13_scl, point_d;
+	double  off;
+	double  d_step;
+	double  w_tri, w_start;
+	double  x_map, l, i;
+
+	w_tri = (side * j) / h_tri;
+
+	l = CEILING((w_tri - 1) / 2);
+	w_start = (x + 0.5 - w_tri / 2);
+	off = CEILING(w_start) - w_start;
+	x_map = CEILING(w_start) - 1;
+
+	d12_scl = d12 * (j / h_tri);
+	d13_scl = d13 * (j / h_tri);
+
+	v3d_affine(vector_12, d12_scl, tbl_tri_xyz_ohp[v_1_3d], point12);
+	v3d_affine(vector_13, d13_scl, tbl_tri_xyz_ohp[v_1_3d], point13);
+
+	v3d_sub(point13, point12, point_vec);
+
+	point_d = v3d_norm(point_vec);
+	d_step = (w_tri == 0 ? 0 : point_d / w_tri);
+
+	v3d_affine(point_vec, d_step * off / 2, point12, xyz);
+	v3d_norm(xyz);
+
+	if (input_x<x_map+1)
+	{
+	    cart_to_sph(xyz[0], xyz[1], xyz[2], &map2_coord[0]);
+	}
+	else if ((x_map+1<=input_x) && (input_x<x_map+2*l)) 
+	{
+		v3d_affine(point_vec, d_step * off, point12, point12);
+		i = input_x-x_map;
+		v3d_affine(point_vec, (i - 1) * d_step + d_step / 2, point12, xyz);
+		v3d_norm(xyz);
+		cart_to_sph(xyz[0], xyz[1], xyz[2], &map2_coord[0]);
+	} 
+	else if (input_x >= x_map+2*l) 
+	{
+		v3d_affine(point_vec, -d_step * off / 2, point13, xyz);
+		v3d_norm(xyz);
+		cart_to_sph(xyz[0], xyz[1], xyz[2], &map2_coord[0]);
+	}
+}
+
+void general_mapping_rev(double input_x, double j, S360_SPH_COORD * map2_coord, \
+	int x, int side, int h_tri, double vector_12[3], double vector_13[3], \
+	int v_1_3d, int v_2_3d, double d12, double d13)
+{
+	double  point12[3], point13[3];
+	double  point_vec[3], xyz[3];
+	double  d12_scl, d13_scl, point_d;
+	double  off;
+	double  d_step;
+	double  w_tri, w_start;
+	double  x_map, l, i;
+
+	w_tri = (h_tri-j) * side/ h_tri;
+	l = CEILING((w_tri - 1) / 2);
+	w_start = (x + 0.5 - w_tri / 2);
+	off = CEILING(w_start) - w_start;
+	x_map = CEILING(w_start + (side >> 1)) - 1;
+	d12_scl = d12 * (j / h_tri);
+	d13_scl = d13 * (j / h_tri);
+
+	v3d_affine(vector_12, d12_scl, tbl_tri_xyz_ohp[v_1_3d], point12);
+	v3d_affine(vector_13, d13_scl, tbl_tri_xyz_ohp[v_2_3d], point13);
+
+	v3d_sub(point13, point12, point_vec);
+
+	point_d = v3d_norm(point_vec);
+	d_step = (w_tri == 0 ? 0 : point_d / w_tri);
+
+	v3d_affine(point_vec, d_step * off / 2, point12, xyz);
+	v3d_norm(xyz);
+
+	if (input_x >= x_map-1 && input_x<x_map+1)
+	{
+	    cart_to_sph(xyz[0], xyz[1], xyz[2], &map2_coord[0]);
+	}
+	else if ((x_map+1<=input_x) && (input_x<x_map+2*l)) 
+	{
+		v3d_affine(point_vec, d_step * off, point12, point12);
+		i = input_x-x_map;
+		v3d_affine(point_vec, (i - 1) * d_step + d_step / 2, point12, xyz);
+		v3d_norm(xyz);
+		cart_to_sph(xyz[0], xyz[1], xyz[2], &map2_coord[0]);
+	} 
+	else if (input_x >= x_map+2*l && input_x<=x_map+2*l+1) 
+	{
+		v3d_affine(point_vec, -d_step * off / 2, point13, xyz);
+		v3d_norm(xyz);
+		cart_to_sph(xyz[0], xyz[1], xyz[2], &map2_coord[0]);
+	}
+}
+
+static void erp2cohp_triangle(int x, int w, int h_tri, int tri_idx, S360_SPH_COORD * map2_coord)
+{
+	double  vector_12[3], vector_13[3];
+	double  d12, d13;
+	int     v_1_3d, v_2_3d, v_3_3d;
+	int     i, j, side;
+	double  input_x, input_y;
+
+	side = w / 4;
+	x += (side >> 1);
+
+	v_1_3d = tbl_vidx_erp2ohp[tri_idx][0];
+	v_2_3d = tbl_vidx_erp2ohp[tri_idx][1];
+	v_3_3d = tbl_vidx_erp2ohp[tri_idx][2];
+
+	v3d_sub(tbl_tri_xyz_ohp[v_2_3d], tbl_tri_xyz_ohp[v_1_3d], vector_12);
+	d12 = v3d_norm(vector_12);
+
+	v3d_sub(tbl_tri_xyz_ohp[v_3_3d], tbl_tri_xyz_ohp[v_1_3d], vector_13);
+	d13 = v3d_norm(vector_13);
+
+	if (tri_idx==0) 
+	{
+		for (j=0; j<h_tri; j++) 
+		{
+			for (i=side/2; i<side*3/2; i++) 
+			{
+				if ((i>=side && i-(side)<=CEILING((double)(side)/2*(h_tri-0.5-j)/(h_tri-0.5))) || \
+					(i<side && side-i<=CEILING((double)(side)/2*(h_tri-0.5-j)/(h_tri-0.5)))) 
+				{
+					input_x = (i-side+0.5)/2-SIN_60*(h_tri-j-0.5) + side-0.5;
+					input_y = h_tri-0.5 - (SIN_60*(i-side+0.5)+(h_tri-0.5-j)/2);
+
+					general_mapping(input_x, input_y, &map2_coord[j*w+i], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, d12, d13);
+				}
+			}
+		}
+
+		//padding
+		for (j=0; j<h_tri; j++) 
+		{
+			for (i=side/2; i<side/2+side/2*(double)j/h_tri; i++)
+			{
+				map2_coord[j*w+i] = map2_coord[j*w+side/2+(int)(side/2*j/h_tri)];
+			}
+		}
+	} 
+	else if (tri_idx==1) 
+	{
+		for (j=0; j<h_tri; j++)
+			for (i=0; i<side; i++) 
+			{
+				if ((i>=side/2 && i-(side/2)<=CEILING((double)(side)/2*j/(h_tri-0.5))) || \
+					(i<side/2 && (side/2)-i<=CEILING((double)(side)/2*j/(h_tri-0.5)))) 
+				{
+					input_x = x+i-(side>>1);
+					input_y = j;
+					general_mapping(input_x, input_y, &map2_coord[j*w+i+side], x, side, \
+						h_tri, vector_12, vector_13, v_1_3d, d12, d13);
+				}
+			}	
+	} 
+	else if (tri_idx==2) 
+	{
+		for (j=0; j<h_tri; j++) 
+		{
+			for (i=(int)(1.5*side); i<(int)(2.5*side); i++) 
+			{
+				if ((i>=side*2 && i-side*2<=CEILING((double)side/2*(h_tri-0.5-j)/(h_tri-0.5))) || \
+					(i<side*2 && side*2-i<=CEILING((double)side/2*(h_tri-0.5-j)/(h_tri-0.5)))) 
+				{
+					input_x = (i-2*side-0.5)/2+SIN_60*(h_tri-j-0.5) + 2*side+0.5;
+					input_y = h_tri-0.5 - (-SIN_60*(i-2*side-0.5)+(h_tri-j-0.5)/2);
+					general_mapping(input_x, input_y, &map2_coord[j*w+i], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, d12, d13);
+				}
+			}
+		}
+
+		//padding
+		for (j=0; j<h_tri; j++) 
+		{
+			for (i=(int)(side*2.5-(double)j/h_tri*side/2); i<side*2.5; i++)
+			{
+				map2_coord[j*w+i] = map2_coord[j*w+side*5/2-(int)(side/2*j/h_tri)];
+			}
+		}
+	} 
+	else if (tri_idx==3) 
+	{
+		for (j=0; j<h_tri; j++)
+		{
+			for (i=3*side; i<3.5*side; i++) 
+			{
+				if (i<side*7/2 && side*7/2-i<=CEILING((double)side/2*j/(h_tri-0.5))) 
+				{
+					input_x = i;
+					input_y = j;
+
+					general_mapping(input_x, input_y, &map2_coord[j*w+i], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, d12, d13);
+				}
+			}
+		}
+		for (j=0; j<h_tri; j++)
+		{
+			for (i=(int)(3.5*side); i<4*side; i++) 
+			{
+				if (i>=side*7/2 && i-side*7/2<=CEILING((double)side/2*j/(h_tri-0.5))) 
+				{
+					input_x = i;
+					input_y = j;
+
+					general_mapping(input_x, input_y, &map2_coord[j*w+i], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, d12, d13);
+				}
+			}	
+		}
+
+		//padding
+		for (j=0; j<h_tri; j++) 
+		{
+		    for (i=side*3; i<3*side+side/2*(double)(h_tri-j)/h_tri; i++)
+			{
+				map2_coord[j*w+i] = map2_coord[j*w+3*side+(int)(side/2*(h_tri-j)/h_tri)];
+			}
+			for (i=(int)(side*3.5+side/2*(double)(j)/h_tri); i<side*4; i++)
+			{
+				map2_coord[j*w+i] = map2_coord[j*w+(int)(side*3.5)+(int)(side/2*(j)/h_tri)];
+			}
+		}
+
+	}
+}
+
+static void erp2cohp_triangle_rev(int x, int w, int h_tri, int tri_idx, S360_SPH_COORD * map2_coord)
+{
+	double  vector_12[3], vector_13[3];
+	double  d12, d13;
+	int     v_1_3d, v_2_3d, v_3_3d;
+	int     i, j, side;
+	double  input_x, input_y;
+
+	side = w / 4;
+
+	v_1_3d = tbl_vidx_erp2ohp[tri_idx + 4][0];
+	v_2_3d = tbl_vidx_erp2ohp[tri_idx + 4][1];
+	v_3_3d = tbl_vidx_erp2ohp[tri_idx + 4][2];
+
+	v3d_sub(tbl_tri_xyz_ohp[v_3_3d], tbl_tri_xyz_ohp[v_1_3d], vector_12);
+	d12 = v3d_norm(vector_12);
+
+	v3d_sub(tbl_tri_xyz_ohp[v_3_3d], tbl_tri_xyz_ohp[v_2_3d], vector_13);
+	d13 = v3d_norm(vector_13);
+
+	if (tri_idx==0) 
+	{
+		for (j=0; j<h_tri; j++)
+			for (i=(int)(0.5*side); i<(int)(1.5*side); i++) 
+			{
+				if ((i>=side && i-(side)<=CEILING((double)(side)/2*j/(h_tri+0.5))) ||
+					(i<side && side-i<=CEILING((double)(side)/2*j/(h_tri+0.5)))) 
+				{
+
+					input_x = (i-side+0.5)/2 + SIN_60*(-j+1.5) + side-0.5;
+					input_y = -(-SIN_60*(i-side+0.5)+(-j+1.5)/2) +1.5;
+					general_mapping_rev(input_x, input_y, &map2_coord[j*w+i + w*(int)h_tri], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, v_2_3d, d12, d13);
+				}
+
+			}
+
+		//padding
+		for (j=0; j<h_tri; j++) 
+		{
+		    for (i=(int)(side*0.5); i<(int)(side*0.5+(double)(h_tri-j)/h_tri*side/2); i++)
+			{
+				map2_coord[j*w+i+w*(int)h_tri] = map2_coord[j*w+w*(int)h_tri+side/2+(int)(side/2*(h_tri-j)/h_tri)];
+			}
+		}
+	} 
+	else if (tri_idx==1) 
+	{
+		for (j=0; j<h_tri; j++)
+		{
+			for (i=0; i<side; i++) 
+			{
+				if ((i>=side/2 && i-(side/2)<=CEILING((double)(side/2)*(h_tri+0.5-j)/(h_tri+0.5))) ||
+					(i<side/2 && side/2-i<=CEILING((double)(side/2)*(h_tri+0.5-j)/(h_tri+0.5)))) 
+				{
+					input_x = x+i;
+					input_y = j;
+					general_mapping_rev(input_x, input_y, &map2_coord[j*w+i+w*(int)h_tri+side], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, v_2_3d, d12, d13);
+				}
+			}	
+		}
+	} 
+	else if (tri_idx==2) 
+	{
+		for (j=0; j<h_tri; j++)
+		{
+			for (i=(int)(1.5*side); i<(int)(2.5*side); i++) 
+			{
+				if ((i>=side*2 && i-(side*2)<=CEILING((double)(side)/2*j/(h_tri+0.5))) ||
+					(i<side*2 && side*2-i<=CEILING((double)(side)/2*j/(h_tri+0.5)))) 
+				{
+					input_x = (i-2*side-0.5)/2-SIN_60*(-j+1.5) + 2*side+0.5;
+					input_y =  - (SIN_60*(i-2*side-0.5)+(-j+1.5)/2) +1.5;
+					general_mapping_rev(input_x, input_y, &map2_coord[j*w+i + w*(int)h_tri], x, side, h_tri, 
+						vector_12, vector_13, v_1_3d, v_2_3d, d12, d13);
+				}
+			}
+		}
+
+		//padding
+		for (j=0; j<h_tri; j++) 
+		{
+		    for (i=(int)(side*2.5-(double)(h_tri-j)/h_tri*side/2); i<(int)(side*2.5); i++)
+			{
+				map2_coord[j*w+i+w*(int)h_tri] = map2_coord[j*w+w*(int)h_tri+side*5/2-(int)(side/2*(h_tri-j)/h_tri)];
+			}
+		}
+	} 
+	else if (tri_idx==3) 
+	{
+		for (j=0; j<h_tri; j++)
+		{
+			for (i=3*side; i<3.5*side; i++) 
+			{
+				if (i<side*7/2 && side*7/2-i<=CEILING((double)side/2*(h_tri+0.5-j)/(h_tri+0.5))) 
+				{
+					input_x = i;
+					input_y = j;
+
+					general_mapping_rev(input_x, input_y, &map2_coord[j*w+i+w*(int)h_tri], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, v_2_3d, d12, d13);
+				}
+			}
+		}
+		for (j=0; j<h_tri; j++)
+		{
+			for (i=(int)(3.5*side); i<4*side; i++) 
+			{
+				if (i>=side*7/2 && i-side*7/2<=CEILING((double)side/2*(h_tri+0.5-j)/(h_tri+0.5))) 
+				{
+					input_x = i;
+					input_y = j;
+
+					general_mapping_rev(input_x, input_y, &map2_coord[j*w+i+w*(int)h_tri], x, side, h_tri, \
+						vector_12, vector_13, v_1_3d, v_2_3d, d12, d13);
+				}
+
+			}	
+		}
+
+		//padding
+		for (j=0; j<h_tri; j++) 
+		{
+		    for (i=side*3; i<(int)(3*side+side/2*(double)(j)/h_tri); i++)
+			{
+				map2_coord[j*w+i+w*(int)h_tri] = map2_coord[j*w+w*(int)h_tri+3*side+(int)(side/2*(j)/h_tri)];
+			}
+		    for (i=(int)(side*3.5+side/2*(double)(h_tri-j)/h_tri); i<side*4; i++)
+			{
+				map2_coord[j*w+i+w*(int)h_tri] = map2_coord[j*w+w*(int)h_tri+(int)(side*3.5)+(int)(side/2*(h_tri-j)/h_tri)];
+			}
+		}
+	}
+}
+
 static void init_sph2ohp_map(S360_SPH_COORD * map, int w_ohp, int h_ohp, int w_tri)
 {
 	int i, x, y1, y2, h_tri, size;
@@ -208,6 +584,34 @@ static void init_sph2ohp_map(S360_SPH_COORD * map, int w_ohp, int h_ohp, int w_t
 	}
 }
 
+static void init_sph2cohp_map(S360_SPH_COORD * map, int w_ohp, int h_ohp, int w_tri, int layer_num)
+{
+	int i, x, y1, y2, h_tri, size;
+	S360_SPH_COORD *map2_coord = map;
+
+	for (i = 0, size = w_ohp*h_ohp; i<size; i++)
+	{
+		map[i].lng = -1;
+		map[i].lat = -1;
+	}
+
+	h_tri = (h_ohp / 2);
+	y1 = h_tri;
+	y2 = (h_tri << 1);
+
+	/* first row */
+	for (i = 0, x = 0; i<4; i++, x += w_tri)
+	{
+		erp2cohp_triangle(x, w_ohp, y1, i, map2_coord);
+	}
+	/* second row */
+	map += y1 * w_ohp;
+	for (i = 0, x = 0; i<4; i++, x += w_tri)
+	{
+		erp2cohp_triangle_rev(x, w_ohp, h_tri, i, map2_coord);
+	}
+}
+
 /*------------------------------------ERP TO OHP----------------------------------------*/
 static int map_to_ohp(S360_MAP * map, int opt)
 {
@@ -222,6 +626,23 @@ static int map_to_ohp(S360_MAP * map, int opt)
 
 	init_sph2ohp_map(map->layer[0], w, h, w_tri);
 	init_sph2ohp_map(map->layer[1], (w >> 1), (h >> 1), (w_tri >> 1));
+
+	return S360_OK;
+}
+
+static int map_erp_to_cohp(S360_MAP * map, int opt)
+{
+	int w, h, w_tri, h_tri;
+	w = map->width;
+	h = map->height;
+	w_tri = GET_W_TRI_OHP(w);
+	h_tri = GET_H_TRI_OHP(w_tri);
+
+	s360_assert_rv(w == w_tri * 4, S360_ERR_INVALID_DIMENSION);
+	s360_assert_rv(h == 2 * h_tri, S360_ERR_INVALID_DIMENSION);
+
+	init_sph2cohp_map(map->layer[0], w, h, w_tri, 0);
+	init_sph2cohp_map(map->layer[1], (w >> 1), (h >> 1), (w_tri >> 1), 1);
 
 	return S360_OK;
 }
@@ -1206,7 +1627,7 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 		cfmt == CONV_FMT_ERP_TO_TSP  || cfmt == CONV_FMT_ERP_TO_OHP  || \
 		cfmt == CONV_FMT_OHP_TO_ROHP || cfmt == CONV_FMT_ROHP_TO_OHP || \
 		cfmt == CONV_FMT_CPP_TO_CMP  || cfmt == CONV_FMT_CPP_TO_ISP  || \
-		cfmt == CONV_FMT_CPP_TO_OHP)
+		cfmt == CONV_FMT_CPP_TO_OHP  || cfmt == CONV_FMT_ERP_TO_COHP)
 	{
 		map = (S360_MAP*)s360_malloc(sizeof(S360_MAP));
 		s360_assert_rv(map, NULL);
@@ -1272,6 +1693,9 @@ S360_MAP * s360_map_create(int w_src, int h_src, int w_dst, int h_dst, int cfmt,
 		case CONV_FMT_ERP_TO_RISP1:
 			fn_map = map_erp_to_risp1;
 			break;
+		case CONV_FMT_ERP_TO_COHP:
+			fn_map = map_erp_to_cohp;
+		break;
 		}
 
 		if(fn_map != NULL)

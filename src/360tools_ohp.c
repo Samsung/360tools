@@ -36,6 +36,9 @@
 #include "360tools.h"
 #include "360tools_ohp.h"
 
+static int cohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
+	int w_dst, int h_dst, int s_dst, void * dst, int cs);
+
 static void fill_pad_buf(S360_SPH_COORD * map, uint8 * ohp, int x_dst, uint8 * buf, int x_buf, int dir, int w)
 {
 	uint8 val;
@@ -411,6 +414,259 @@ int s360_erp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 	return S360_OK;
 }
 
+static int erp_to_cohp_plane(void * src, int w_src, int h_src, int s_src, \
+	int w_dst, int h_dst, int s_dst, void * dst, int w_tri, int opt, int cs,\
+	int pad_sz, S360_SPH_COORD * map)
+{
+	void  (*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
+	double      x, y;
+	int         i, j;
+	int         w_start, w_end, h_start;
+
+	w_start = opt ? -pad_sz : 0;
+	w_end = opt ? w_src + pad_sz : w_src;
+	h_start = 0;
+
+	if(cs == S360_COLORSPACE_YUV420)
+	{
+		fn_resample = resample_2d;
+	}
+	else if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		fn_resample = resample_2d_10b;
+		s_dst <<= 1;
+	}
+
+	for(j=0; j<h_dst; j++)
+	{
+		for(i=0; i<w_dst; i++)
+		{
+			if(map[i].lng != -1)
+			{
+				x = (map[i].lng / 360) * w_src;
+				y = (map[i].lat / 180) * h_src;
+
+				fn_resample(src, w_start, w_end, h_start, h_src, s_src, \
+					x, y, dst, i);
+			}
+		}
+		dst = (void *)((uint8 *)dst + s_dst);
+		map += w_dst;
+	}
+	map -= w_dst * h_dst;
+	dst = (void *)((uint8 *)dst - s_dst * h_dst);
+
+	return S360_OK;
+}
+
+int s360_erp_to_cohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, \
+	S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst;
+	int w_tri, h_tri;
+	int ret;
+	int pad_sz;
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+	
+	w_dst = img_dst->width;
+	h_dst = img_dst->height;
+
+	w_tri = GET_W_TRI_OHP(w_dst);
+	h_tri = GET_H_TRI_OHP(w_tri);
+
+	s360_assert_rv(w_dst == w_tri * 4, S360_ERR_INVALID_DIMENSION);
+	s360_assert_rv(h_dst == 2 * h_tri, S360_ERR_INVALID_DIMENSION);
+
+	if(h_dst > img_dst->height) return S360_ERR_INVALID_ARGUMENT;
+	
+	ret = s360_img_realloc(img_dst, w_dst, h_dst, opt);
+	s360_assert_rv(ret == S360_OK, ret);
+
+	s360_img_reset(img_dst);
+
+	pad_sz = (opt & S360_OPT_PAD)?PAD_SIZE:0;
+
+	if(opt & S360_OPT_PAD)
+		s360_pad_erp(img_src);
+
+	if(IS_VALID_CS(img_src->colorspace))
+	{
+		erp_to_ohp_plane(img_src->buffer[0], w_src, h_src, img_src->stride[0], w_dst, h_dst, \
+			img_dst->stride[0], img_dst->buffer[0], w_tri, opt, img_src->colorspace, pad_sz, map->layer[0]);
+
+		w_tri >>= 1;
+		w_src >>= 1;
+		h_src >>= 1;
+		w_dst >>= 1;
+		h_dst >>= 1;
+		pad_sz >>= 1;
+
+		erp_to_ohp_plane(img_src->buffer[1], w_src, h_src, img_src->stride[1], w_dst, h_dst, \
+			img_dst->stride[1], img_dst->buffer[1], w_tri, opt, img_src->colorspace, pad_sz, map->layer[1]);
+		erp_to_ohp_plane(img_src->buffer[2], w_src, h_src, img_src->stride[2], w_dst, h_dst, \
+			img_dst->stride[2], img_dst->buffer[2], w_tri, opt, img_src->colorspace, pad_sz, map->layer[1]);
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+
+	return S360_OK;
+}
+
+uint16 *buft[3];
+
+void cohp_read_img(S360_IMAGE *src, int w_tri, int h_tri, int *stride)
+{
+	int w_src, h_src, j, side;
+	uint16 *p, *q;
+
+	w_src = src->width;
+	h_src = src->height;
+	side = w_src/2;
+
+	p = src->buffer[0];
+	q = buft[0];
+
+	for (j=0; j<h_src; j++) 
+	{
+        memcpy(&q[j*stride[0]*2+w_tri/2], &p[j*stride[0]], w_src*2);
+	}
+
+	p = src->buffer[1];
+	q = buft[1];
+	for (j=0; j<h_src/2; j++) 
+	{
+        memcpy(&q[j*stride[1]*2+w_tri/2/2], &p[j*stride[1]], w_src*2/2);
+	}
+	p = src->buffer[2];
+	q = buft[2];
+	for (j=0; j<h_src/2; j++) 
+	{
+        memcpy(&q[j*stride[1]*2+w_tri/2/2], &p[j*stride[1]], w_src*2/2);
+	}
+}
+
+void cohp_padding(uint16 *buf, int w_src, int h_src, int stride, int w_tri, int h_tri, int pad_size)
+{
+	uint16 *q;
+	int t, i, j, side;
+
+	side = w_src/4;
+
+	q = buf;
+
+	for (j=0; j<h_src/2; j++) 
+	{
+		t = side*0.5+side*(double)(j)/h_src;
+		for (i=side*0.5; i<S360_MAX(side*0.5+1, t); i++)
+			q[j*stride+i+side*3] = q[j*stride+i];
+		for (i=S360_MAX(side*0.5+1, t); i<side; i++)
+			q[j*stride+i+side*3] = q[j*stride+t];
+	}
+	for (j=h_src/2; j<h_src; j++) 
+	{
+		t = side*0.5+side*(double)(h_src-j-1)/h_src;
+	    for (i=side*0.5; i<S360_MAX(side*0.5, t); i++)
+			q[j*stride+i+side*3] = q[j*stride+i];
+		t = side*0.5+side*(double)(h_src-j-1)/h_src;
+        for (i=S360_MAX(side*0.5, t); i<side; i++)
+			q[j*stride+i+side*3] = q[j*stride+t];
+	}
+
+	for (j=0; j<h_src/2; j++) 
+	{
+		t = side*2.5-j*side/h_src;
+	    for (i=S360_MIN(side*2.5-1, t); i<side*2.5; i++)
+			q[j*stride+i+side] = q[j*stride+i];
+		for (i=side*2; i<S360_MIN(side*2.5-1, t); i++)
+			q[j*stride+i+side] = q[j*stride+(int)S360_MIN(side*2.5-1, t)];
+	}
+	for (j=h_src/2; j<h_src; j++) 
+	{
+		t = side*2.5-(h_src-j-1)*side/h_src-1;
+	    for (i=S360_MIN(side*2.5-1, t); i<side*2.5; i++)
+			q[j*stride+i+side] = q[j*stride+i];
+		for (i=side*2; i<S360_MIN(side*2.5-1, t); i++)
+			q[j*stride+i+side] = q[j*stride+(int)S360_MIN(side*2.5-1, t)];
+	}
+
+	for (j=0; j<h_src/2; j++) 
+	{
+		t = side*0.5+(side*(double)(j)/h_src)+1;
+	    for (i=t-pad_size; i<t; i++)
+			q[j*stride+i] = q[j*stride+t];
+	}
+	for (j=h_src/2; j<h_src; j++) 
+	{
+		t = side*0.5+(side*(double)(h_src-j-1)/h_src)+1;
+        for (i=t-pad_size; i<t; i++)
+			q[j*stride+i] = q[j*stride+t];
+	}
+
+	for (j=0; j<h_src/2; j++) 
+	{
+		t = side*2.5-j*side/h_src-1-1;
+	    for (i=t; i<t+16; i++)
+			q[j*stride+i] = q[j*stride+t];
+	}
+	for (j=h_src/2; j<h_src; j++) 
+	{
+		t = side*2.5-(h_src-j-1)*side/h_src-1-1;
+	    for (i=t; i<t+16; i++)
+			q[j*stride+i] = q[j*stride+t];
+	}
+}
+
+int s360_cohp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map)
+{
+	int w_src, h_src, w_dst, h_dst, i, j;
+	int w_tri, h_tri;
+
+	w_src = img_src->width;
+	h_src = img_src->height;
+	
+	w_dst = img_dst->width;
+	h_dst = img_dst->height;
+
+	w_tri = GET_W_TRI_OHP(w_src*2);
+	h_tri = GET_H_TRI_OHP(w_tri);
+
+	buft[0] = (uint16 *)malloc(sizeof(uint16)*img_src->stride[0]*2*h_src);
+	buft[1] = (uint16 *)malloc(sizeof(uint16)*img_src->stride[1]*2*h_src/2);
+	buft[2] = (uint16 *)malloc(sizeof(uint16)*img_src->stride[2]*2*h_src/2);
+	cohp_read_img(img_src, w_tri, h_tri, img_src->stride);
+
+	cohp_padding(buft[0], w_src*2, h_src, img_src->stride[0]*2, w_tri, h_tri, 16);
+	cohp_padding(buft[1], w_src, h_src/2, img_src->stride[1]*2, w_tri/2, h_tri/2, 16);
+	cohp_padding(buft[2], w_src, h_src/2, img_src->stride[2]*2, w_tri/2, h_tri/2, 16);
+
+	if(IS_VALID_CS(img_src->colorspace))
+	{
+		cohp_to_erp_plane(buft[0], w_src*2, h_src, img_src->stride[0]*2, w_dst, h_dst, img_dst->stride[0], img_dst->buffer[0], img_src->colorspace);
+
+		w_src >>= 1;
+		h_src >>= 1;
+		w_dst >>= 1;
+		h_dst >>= 1;
+
+		cohp_to_erp_plane(buft[1], w_src*2, h_src, img_src->stride[1]*2, w_dst, h_dst, img_dst->stride[1], img_dst->buffer[1], img_src->colorspace);
+		cohp_to_erp_plane(buft[2], w_src*2, h_src, img_src->stride[2]*2, w_dst, h_dst, img_dst->stride[2], img_dst->buffer[2], img_src->colorspace);
+	}
+	else
+	{
+		return S360_ERR_UNSUPPORTED_COLORSPACE;
+	}
+
+	free(buft[0]);
+	free(buft[1]);
+	free(buft[2]);
+	return S360_OK;
+}
+
 static int cpp_to_ohp_plane(int w_src, int h_src, int w_dst, int h_dst, \
 	void * src, void * img_dst, int s_src, int s_dst, int w_tri, int opt, int cs, S360_SPH_COORD * map0)
 {
@@ -708,6 +964,189 @@ static int ohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
 				y = vertex_y + y;
 			}
 			fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
+		}
+		dst = (void *)((uint8 *)dst + s_dst);
+	}
+
+	return S360_OK;
+}
+
+void general_mapping_ohp_to_erp(double *x, double *y, int tri, double w_tri, double h_tri)
+{
+	double xo, yo;
+
+	if (tri==1 || tri==5)
+		return;
+	else if (tri==3 || tri==7) {
+	} else if (tri==2) {
+		xo = *x - 2*w_tri -0.5;
+		yo = h_tri - *y -0.5;
+		*x = xo/2-sqrt(3)/2*yo + 2*w_tri +0.5;
+		*y = h_tri - (sqrt(3)/2*xo+yo/2) -0.5;
+	} else if (tri==0) {
+		xo = *x - w_tri +0.5;
+		yo = h_tri - *y -0.5;
+		*x = xo/2+sqrt(3)/2*yo + w_tri -0.5;
+		*y = h_tri - (-sqrt(3)/2*xo+yo/2) -0.5;
+	} else if (tri==4) {
+		xo = *x - w_tri + 0.5;
+		yo = h_tri - *y +1.5;
+		*x = xo/2-sqrt(3)/2*yo + w_tri -0.5;
+		*y = h_tri - (sqrt(3)/2*xo+yo/2) +1.5;
+	} else if (tri==6) {
+		xo = *x - 2*w_tri -0.5;
+		yo = h_tri - *y+1.5;
+		*x = xo/2+sqrt(3)/2*yo + 2*w_tri +0.5;
+		*y = h_tri - (-sqrt(3)/2*xo+yo/2) +1.5;
+	}
+}
+
+static int cohp_to_erp_plane(void * src, int w_src, int h_src, int s_src, \
+	int w_dst, int h_dst, int s_dst, void * dst, int cs)
+{
+	void  (*fn_resample)(void * src, int w_start, int w_end, int h_start, int h_end,\
+		int s_src, double x, double y, void * dst, int x_dst);
+	double  n1[3], n2[3], normal[3], mid[3], xyz[3], t_vec[3];
+	double  lng, lat, x, y, u;
+	double  h_tri_3d, w_tri_3d;
+	double  dist_23, dist_cmp1, dist_cmp2, d_ver, d_hor;
+	int     tri, w_tri, h_tri, vertex_x, vertex_y;
+	int     y1, y2;
+	int     v1, v2, v3;
+	int     i, j;
+
+	if(cs == S360_COLORSPACE_YUV420)
+	{
+		fn_resample = resample_2d;
+	}
+	else if(cs == S360_COLORSPACE_YUV420_10)
+	{
+		fn_resample = resample_2d_10b;
+		s_dst <<= 1;
+	}
+
+	w_tri = (int)(w_src / 4);
+	h_tri = (int)(h_src / 2);
+	y1    = h_tri;
+	y2    = (h_tri * 2);
+
+	v3d_average(tbl_tri_xyz_ohp[1], tbl_tri_xyz_ohp[2], mid);
+
+	v3d_sub(tbl_tri_xyz_ohp[0], mid, t_vec);
+	h_tri_3d = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+
+	for(j=0; j<h_dst; j++)
+	{
+		for(i=0; i<w_dst; i++)
+		{
+			lng = DEG2RAD(360) * i / w_dst;
+			lat = DEG2RAD(180) * j / h_dst;
+			xyz[0] = sin(lat) * cos(lng);
+			xyz[1] = sin(lat) * sin(lng);
+			xyz[2] = cos(lat);
+
+			tri = get_tri_idx(xyz[0], xyz[1], xyz[2], tbl_center_xyz_ohp);
+			v1 = tbl_vidx_ohp2erp[tri][0];
+			v2 = tbl_vidx_ohp2erp[tri][1];
+			v3 = tbl_vidx_ohp2erp[tri][2];
+
+			v3d_sub(tbl_tri_xyz_ohp[v1], tbl_tri_xyz_ohp[v2], n1);
+			v3d_sub(tbl_tri_xyz_ohp[v1], tbl_tri_xyz_ohp[v3], n2);
+
+			normal[0] = -(n1[1] * n2[2] - n2[1] * n1[2]);
+			normal[1] = -(n1[2] * n2[0] - n2[2] * n1[0]);
+			normal[2] = -(n1[0] * n2[1] - n2[0] * n1[1]);
+
+			v3d_dot(normal, xyz, n1);
+			v3d_dot(normal, tbl_tri_xyz_ohp[v1], n2);
+
+			v3d_scale(xyz, (n2[0] + n2[1] + n2[2]) / (n1[0] + n1[1] + n1[2]));
+
+			v3d_sub(tbl_tri_xyz_ohp[v3], tbl_tri_xyz_ohp[v2], n1);
+			dist_23 = n1[0] * n1[0] + n1[1] * n1[1] + n1[2] * n1[2];
+
+			v3d_sub(xyz, tbl_tri_xyz_ohp[v2], t_vec);
+			v3d_dot(t_vec, n1, t_vec);
+			u = (t_vec[0] + t_vec[1] + t_vec[2]) / dist_23;
+
+			v3d_average(tbl_tri_xyz_ohp[v2], tbl_tri_xyz_ohp[v3], mid);
+
+			v3d_sub(tbl_tri_xyz_ohp[v2], tbl_tri_xyz_ohp[v3], t_vec);
+			w_tri_3d = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+			v3d_sub(tbl_tri_xyz_ohp[v1], mid, t_vec);
+			h_tri_3d = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+
+			v3d_affine(n1, u, tbl_tri_xyz_ohp[v2], n2);
+
+			v3d_sub(mid, n2, t_vec);
+			d_hor = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+			v3d_sub(xyz, n2, t_vec);
+			d_ver = h_tri_3d - GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+
+			x = (w_tri / w_tri_3d) * d_hor;
+			y = (h_tri / h_tri_3d) * d_ver;
+
+			v3d_sub(tbl_tri_xyz_ohp[v2], n2, t_vec);
+			dist_cmp1 = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+			v3d_sub(tbl_tri_xyz_ohp[v3], n2, t_vec);
+			dist_cmp2 = GET_DIST3D(t_vec[0], t_vec[1], t_vec[2]);
+
+			switch(tri)
+			{
+			case 0:
+				vertex_x = (w_tri >> 1);
+				vertex_y = 0;
+				break;
+			case 1:
+				vertex_x = (w_tri >> 1) + w_tri;
+				vertex_y = 0;
+				break;
+			case 2:
+				vertex_x = (w_tri >> 1) + (w_tri << 1);
+				vertex_y = 0;
+				break;
+			case 3:
+				vertex_x = (w_tri >> 1) + 3 * w_tri;
+				vertex_y = 0;
+				break;
+
+			case 4:
+				vertex_x = (w_tri >> 1);
+				vertex_y = y2;
+				break;
+			case 5:
+				vertex_x = (w_tri >> 1) + w_tri;
+				vertex_y = y2;
+				break;
+			case 6:
+				vertex_x = (w_tri >> 1) + (w_tri << 1);
+				vertex_y = y2;
+				break;
+			case 7:
+				vertex_x = (w_tri >> 1) + 3 * w_tri;
+				vertex_y = y2;
+				break;
+			
+			}
+			if(vertex_y >= y2)
+			{
+				y = -y;
+			}
+
+			if(dist_cmp1 > dist_cmp2)
+			{
+				x = vertex_x + x;
+				y = vertex_y + y;
+			}
+			else
+			{
+				x = vertex_x - x;
+				y = vertex_y + y;
+			}
+
+			general_mapping_ohp_to_erp(&x, &y, tri, w_tri, h_tri);
+
+      fn_resample(src, 0, w_src, 0, h_src, s_src, x, y, dst, i);
 		}
 		dst = (void *)((uint8 *)dst + s_dst);
 	}

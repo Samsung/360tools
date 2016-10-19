@@ -107,6 +107,8 @@ static S360_ARGS_OPT argopt[] = \
 		"16: ROHP to OHP\n\t"
 		"21: ERP  to RISP\n\t"
 		"22: RISP to ERP\n\t"
+		"25: ERP  to COHP\n\t"
+		"26: COHP to ERP\n\t"
 		"31: CPP  to ERP\n\t"
 		"32: CPP  to ISP\n\t"
 		"33: CPP  to CMP\n\t"
@@ -184,11 +186,12 @@ static void print_usage(void)
 
 int main(int argc, const char * argv[])
 {
-	S360_IMAGE     * imgi = NULL;
-	S360_IMAGE     * imgo = NULL;
-	S360_MAP	    * map = NULL;
-	FILE            * fpi = NULL;
-	FILE            * fpo = NULL;
+	S360_IMAGE     * imgi  = NULL;
+	S360_IMAGE     * imgo  = NULL;
+	S360_IMAGE     * imgos = NULL;  
+	S360_MAP	    * map  = NULL;
+	FILE            * fpi  = NULL;
+	FILE            * fpo  = NULL;
 	int            (* fn_conv)(S360_IMAGE * imgi, S360_IMAGE * imgo, int opt, S360_MAP * map);
 	int               opt = 0;
 	int               ret, pic_cnt = 0;
@@ -314,6 +317,21 @@ int main(int argc, const char * argv[])
 		print_usage();
 		goto END;
 	}
+	if((cfmt == CONV_FMT_ERP_TO_COHP) && (((w_out)%8 != 0 ||
+		h_out != 4*NEAREST_EVEN((((int)((int)((w_out)/4)/4)*4))*SIN_60))))
+	{
+		/* some suggested dimensions */
+		int w_tri, h_tri;
+		w_tri = ((int)((int)((w_out)/4)/4)*4);
+		h_tri = NEAREST_EVEN((w_tri)*SIN_60);
+		w_tri = w_tri*4;
+		h_tri = h_tri*4;
+		s360_print("Invalid output resolution %dx%d, COHP recommended aspect "
+			" ratio: 112:97\n",	w_out, h_out);
+		s360_print("Suggested sample dimension: %dx%d\n", w_tri, h_tri);
+		print_usage();
+		goto END;
+	}
 
 	if(!opt_flag[CMD_FLAG_CONV_OWIDTH]) w_out = w_in;
 	if(!opt_flag[CMD_FLAG_CONV_OHEIGHT]) h_out = h_in;
@@ -343,8 +361,14 @@ int main(int argc, const char * argv[])
 		opt |= S360_OPT_PAD;
 	}
 
+	if (cfmt == CONV_FMT_ERP_TO_COHP) 
+	{
+		imgos = s360_img_create(w_out, h_out, cs_int, opt);
+		w_out = w_out * 2;
+	}
 	imgi = s360_img_create(w_in, h_in, cs_int, opt);
 	imgo = s360_img_create(w_out, h_out, cs_int, opt);
+
 	if(imgi == NULL || imgo == NULL)
 	{
 		s360_print("Failed to create image buffer\n");
@@ -425,6 +449,12 @@ int main(int argc, const char * argv[])
 	case CONV_FMT_CPP_TO_SSP:
 		fn_conv = o360_cpp_to_ssp;
 		break;
+	case CONV_FMT_ERP_TO_COHP:
+		fn_conv = s360_erp_to_cohp;
+		break;
+	case CONV_FMT_COHP_TO_ERP:
+		fn_conv = s360_cohp_to_erp;
+		break;
 	default:
 		s360_print("Unsupprted converting format\n");
 		print_usage();
@@ -457,7 +487,10 @@ int main(int argc, const char * argv[])
 
 		if(S360_SUCCEEDED(ret))
 		{
-			s360_print("convert succeeded: resolution= %dx%d\n", imgo->width, imgo->height);
+			if (cfmt == CONV_FMT_ERP_TO_COHP) 
+				s360_print("convert succeeded: resolution= %dx%d\n", imgo->width / 2, imgo->height);
+			else
+				s360_print("convert succeeded: resolution= %dx%d\n", imgo->width, imgo->height);
 		}
 		else
 		{
@@ -465,10 +498,22 @@ int main(int argc, const char * argv[])
 			goto END;
 		}
 
+		if (cfmt == CONV_FMT_ERP_TO_COHP)
+		{
+			s360_img_copy(imgos, imgo);
+		}
+
 		fpo = fopen(fname_out, "ab");
 		if(fpo)
 		{
-			s360_img_write(fpo, imgo, cs_out);
+			if (cfmt == CONV_FMT_ERP_TO_COHP)
+			{
+				s360_img_write(fpo, imgos, cs_out);
+			}
+			else
+			{
+				s360_img_write(fpo, imgo, cs_out);
+			}
 			fclose(fpo);
 		}
 
@@ -479,7 +524,8 @@ END:
 	if(fpi) fclose(fpi);
 	if(imgi) s360_img_delete(imgi);
 	if(imgo) s360_img_delete(imgo);
-	if (map) s360_map_delete(map);
+	if(imgos) s360_img_delete(imgos);
+	if(map) s360_map_delete(map);
 
 	s360_deinit();
 

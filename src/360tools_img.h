@@ -56,6 +56,9 @@ int s360_img_read(FILE * fp, S360_IMAGE * img, int cs);
 /* write an image to file */
 int s360_img_write(FILE * fp, S360_IMAGE * img, int cs);
 
+/* copy image */
+int s360_img_copy(S360_IMAGE *out, S360_IMAGE *in);
+
 /* change width and height of the image */
 int s360_img_realloc(S360_IMAGE * img, int w, int h, int opt);
 

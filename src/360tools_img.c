@@ -518,3 +518,61 @@ int s360_img_align(S360_IMAGE * img, int align)
 	}
 }
 
+int s360_img_copy(S360_IMAGE *out, S360_IMAGE *in)
+{
+	int w = out->width;
+	int h = out->height;
+	int s = out->stride[0];
+	int w_tri = GET_W_TRI_OHP(w*2);
+	int h_tri = GET_H_TRI_OHP(w_tri);
+	int i, j;
+	int x;
+	uint8  *p1, *p2;
+	uint16 *q1, *q2;
+	
+	for (i=0; i<3; i++) 
+	{
+		for (j=0; j<h; j++) 
+		{
+			//if (out->colorspace==S360_COLORSPACE_YUV420) {
+			if (0) 
+			{
+				p1 = (uint8*)out->buffer[i];
+				p2 = (uint8*)in->buffer[i];
+				memcpy(&p1[j*out->stride[i]], &p2[j*in->stride[i]+w_tri/2], w*2);
+			} 
+			else if (out->colorspace==S360_COLORSPACE_YUV420_10)
+			{
+				q1 = (uint16*)out->buffer[i];
+				q2 = (uint16*)in->buffer[i];
+				memcpy(&q1[j*out->stride[i]], &q2[j*in->stride[i]+w_tri/2], w*2);
+			}
+		}
+		for (j=0; j<h/2; j++) 
+		{
+			x = CEILING((double)w_tri*j/h);
+			if (!x) x=1;
+			memcpy(&q1[j*out->stride[i]], &q2[j*in->stride[i]+w_tri*7/2], x*2);
+			x = CEILING((double)w_tri*(h/2-1-j)/h);
+			if (!x) x=1;
+			memcpy(&q1[j*out->stride[i]+w_tri*3/2+x], &q2[j*in->stride[i]+w_tri*3+x], (w_tri/2-x)*2);
+		}
+		for (j=h/2; j<h; j++) 
+		{
+			x =	CEILING((double)w_tri*(h-1-j)/h);
+			if (!x) x=1;
+			memcpy(&q1[j*out->stride[i]], &q2[j*in->stride[i]+w_tri*7/2], x*2);
+			x = CEILING((double)w_tri*(h-1-j)/h);
+			if (!x) x=1;
+			memcpy(&q1[j*out->stride[i]+w_tri*3/2+(w_tri/2-x)], &q2[j*in->stride[i]+w_tri*3+(w_tri/2-x)], x*2);
+		}
+
+		if (i==0) 
+		{
+			h/=2;
+			w/=2;
+			w_tri/=2;
+		}
+	}
+	return S360_OK;
+}

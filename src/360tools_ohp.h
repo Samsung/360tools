@@ -47,6 +47,7 @@ extern "C"
 
 /* to OHP */
 int s360_erp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_erp_to_cohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_rohp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_cpp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 
@@ -54,6 +55,7 @@ int s360_cpp_to_ohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MA
 int s360_ohp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_ohp_to_cpp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 int s360_ohp_to_rohp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
+int s360_cohp_to_erp(S360_IMAGE * img_src, S360_IMAGE * img_dst, int opt, S360_MAP * map);
 
 #ifdef __cplusplus
 }
