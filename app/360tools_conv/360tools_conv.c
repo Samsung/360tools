@@ -173,7 +173,7 @@ static S360_ARGS_OPT argopt[] = \
 static void print_usage(void)
 {
 	int i;
-	char str[512];
+	char str[1024];
 
 	s360_print("< Usage >\n");
 
