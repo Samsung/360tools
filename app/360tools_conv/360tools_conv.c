@@ -238,7 +238,7 @@ int main(int argc, const char * argv[])
 	}
 
 	if((cfmt == CONV_FMT_ERP_TO_CMP) &&
-        ((w_out%4 != 0 || h_out%4 != 0) || (w_out*3 != h_out*4)))
+        ((w_out%4 != 0 || h_out%3 != 0) || (w_out*3 != h_out*4)))
 	{
 		s360_print("Invalid output resolution for cubemap, suugested aspect "
 			"ratio 4:3 and must be multiple of 4: %dx%d\n", w_out, h_out);
