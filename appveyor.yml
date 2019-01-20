@@ -13,7 +13,6 @@ before_build:
     mkdir cmake_build
     cd cmake_build
     cmake --version
-    cmake c:\projects\360tools\build\x86_windows
 
 build_script:
  - msbuild c:\projects\360tools\build\x86_windows\$target
