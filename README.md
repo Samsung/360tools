@@ -1,4 +1,4 @@
-# 360tools 
+# 360tools  [![Travis Build Status](https://travis-ci.org/Samsung/360tools.svg?branch=master)](https://travis-ci.org/Samsung/360tools)
 
 	Projection and quality evaluation tools for VR video compression exploration experiments
 
