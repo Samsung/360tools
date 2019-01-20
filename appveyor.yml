@@ -6,7 +6,7 @@ environment:
    - target: 360tools_vs2010.sln
    - target: 360tools_conv_vs2010.vcxproj
    - target: 360tools_metric_vs2010.vcxproj
-   - target: 360tools_conv_vs2010.vcxproj
+   - target: 360tools_lib_vs2010.vcxproj
 
 build_script:
  - msbuild c:\projects\360tools\build\x86_windows\%target%
