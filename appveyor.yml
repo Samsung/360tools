@@ -8,15 +8,9 @@ environment:
    - target: 360tools_metric_vs2010.vcxproj
    - target: 360tools_conv_vs2010.vcxproj
 
-before_build:
-- cmd: |-
-    cd %APPVEYOR_BUILD_FOLDER%
-    mkdir cmake_build
-    cd cmake_build
-    cmake --version
-
 build_script:
  - msbuild c:\projects\360tools\build\x86_windows\%target%
  
 artifacts:
  - path: \**\360tools.exe
+ - path: \**\360tools.lib
