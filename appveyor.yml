@@ -12,5 +12,5 @@ build_script:
  - msbuild c:\projects\360tools\build\x86_windows\%target%
  
 artifacts:
- - path: \**\360tools.exe
- - path: \**\360tools.lib
+ - path: \**\360tools*.exe
+ - path: \**\360tools*.lib
