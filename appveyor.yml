@@ -15,7 +15,7 @@ before_build:
     cmake --version
 
 build_script:
- - msbuild c:\projects\360tools\build\x86_windows\%target%
+ - msbuild c:\projects\360tools\build\x86_windows\%target% /p:PlatformToolset=v100
  
 artifacts:
  - path: cmake_build\Release\*.exe
