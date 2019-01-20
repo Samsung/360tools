@@ -7,3 +7,4 @@ compiler:
 script:
   - cd build/x86_linux
   - make
+  - make RELEASE
