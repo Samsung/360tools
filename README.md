@@ -1,4 +1,4 @@
-# 360tools [![AppVeyor Build Status](https://ci.appveyor.com/project/Samsung/360tools/branch/master?svg=true)](https://ci.appveyor.com/project/Samsung/360tools)
+# 360tools [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/Samsung/360tools?branch=master&svg=true)](https://ci.appveyor.com/project/Samsung/360tools)
 
 	Projection and quality evaluation tools for VR video compression exploration experiments
 
