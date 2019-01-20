@@ -1,5 +1,9 @@
 language: c
 
+compiler:
+  - clang
+  - gcc
+
 script:
   - cd build/x86_linux
   - make
