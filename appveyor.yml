@@ -1,4 +1,4 @@
-image: Visual Studio 2017
+image: Visual Studio 2010
 configuration: Release
 
 environment:
@@ -15,7 +15,7 @@ before_build:
     cmake --version
 
 build_script:
- - msbuild c:\projects\360tools\build\x86_windows\%target% /p:PlatformToolset=v100
+ - msbuild c:\projects\360tools\build\x86_windows\%target%
  
 artifacts:
  - path: cmake_build\Release\*.exe
