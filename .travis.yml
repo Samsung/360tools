@@ -1,0 +1,5 @@
+language: c
+
+script:
+  - cd build/x86_linux
+  - make
