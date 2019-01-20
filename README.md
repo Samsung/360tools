@@ -23,7 +23,7 @@
 
 ## Building
 
-Checkout the source for 360 Tools
+Checkout the source for 360 Tools. Automatic Windows x86-64 builds and libaries can be found on [AppVeyor](https://ci.appveyor.com/project/Samsung/360tools) under the Artifacts tab.
 
 	+ Windows
 	In 360tools/build/x86_windows/
