@@ -3,6 +3,7 @@ configuration: Release
 
 environment:
   matrix:
+   - target: 360tools_vs2010.sln
    - target: 360tools_conv_vs2010.vcxproj
    - target: 360tools_metric_vs2010.vcxproj
    - target: 360tools_conv_vs2010.vcxproj
@@ -18,4 +19,4 @@ build_script:
  - msbuild c:\projects\360tools\build\x86_windows\%target%
  
 artifacts:
- - path: cmake_build\Release\*.exe
+ - path: \**\360tools.exe
